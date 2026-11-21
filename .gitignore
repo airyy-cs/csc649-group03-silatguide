@@ -1,0 +1,17 @@
+# secrets / local config
+.env
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# model files must never be committed (Ollama downloads them separately)
+*.gguf
+*.bin
+*.safetensors
