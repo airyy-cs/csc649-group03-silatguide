@@ -1,197 +1,150 @@
-# 🥋 SilatGuide – A Local AI Chatbot for Malaysian Silat
+# SilatGuide – Malaysian Silat Chatbot
 
-**CSC649 Special Topics in Computer Science · Group Project (Domain: Malaysian Silat)**
+**CSC649 – Special Topics in Computer Science | Group Project**
 
-SilatGuide is a beginner-friendly chatbot about **Malaysian Silat**. It answers in English using
-**Retrieval-Augmented Generation (RAG)**: a custom 36-entry dataset is searched with
-**TF-IDF + cosine similarity**, and **LLaMA 3.2 3B running locally through Ollama** turns the
-retrieved facts into a natural answer. No API key, no subscription, no cloud.
+## 1. Introduction
+SilatGuide is a chatbot developed to help beginners learn about Malaysian Silat. Users can ask questions about Silat history, types, culture, basic movements, safety, and ethics. The chatbot provides short answers based on a prepared question-and-answer dataset.
 
-![Welcome screen](docs/screenshots/01_welcome.png)
+The system uses Python and Streamlit for its web interface. It combines TF-IDF retrieval with LLaMA 3.2 3B through Ollama to produce answers. The current dataset and chatbot responses are in English.
 
-> 🎬 **Demo video (2–4 min):** `TODO – add link here before submission`
-> 📦 **Repository:** `TODO – csc649-groupNN-silatguide`
+## 2. Problem Statement
+Information about Malaysian Silat can be spread across different websites and resources. Beginners may find it difficult to identify suitable and reliable information. SilatGuide aims to provide a simple place to explore basic Silat topics using a chatbot.
 
----
+## 3. Project Objectives
+- Develop a chatbot that focuses on Malaysian Silat.
+- Use a prepared dataset to support chatbot answers.
+- Integrate a local language model through Ollama.
+- Provide a simple and user-friendly web interface.
+- Test the chatbot with relevant, unrelated, and unsafe questions.
 
-## 1. Team  *(TODO – fill in real details)*
+## 4. Group Members
+| Member | GitHub Username | Responsibility |
+|---|---|---|
+| [Member 1] | airyy-cs | Project coordination and backend |
+| [Member 2] | [Username] | Frontend and interface testing |
+| [Member 3] | [Username] | Dataset, testing, and documentation |
 
-| Member | GitHub username | Role | Main folders |
-|---|---|---|---|
-| TODO name | TODO | Project Leader | README, `docs/`, `tests/` |
-| TODO name | TODO | Frontend Developer | `app/` |
-| TODO name | TODO | Backend Developer / Model Integrator | `src/` |
-| TODO name | TODO | Domain Specialist | `data/`, prompts, test cases |
+*Update the table with each member's actual contributions.*
 
-GitHub evidence (Contributors graph, PR list, Project board) → add screenshots to `docs/`.
-
-## 2. Problem statement
-Beginners who want to learn about Silat find scattered, sometimes inaccurate or sensationalised
-information, and general-purpose chatbots can "hallucinate" history, techniques and rules.
-A trustworthy, safe, beginner-level source is needed that cites where facts come from.
-
-## 3. Objectives
-1. Build a domain-specific chatbot for Malaysian Silat (introduction, history, styles, culture, basic terms, safety, ethics, clothing).
-2. Ground answers in a **custom, sourced dataset** instead of the model's memory.
-3. Run **fully locally** (Ollama + LLaMA 3.2 3B) on a 16 GB laptop.
-4. Refuse unrelated, unsafe or rule-bypassing requests and **admit when it does not know**.
-5. Provide a polished, culturally themed interface and automated tests.
-
-## 4. Technologies
-Python 3.10+ · Streamlit · Ollama · LLaMA 3.2 3B (`llama3.2:3b`) · scikit-learn (TF-IDF, cosine) · pandas · requests · Pillow (artwork) · pytest.
-
-## 5. AI model
-| | |
+## 5. Tools and Technologies
+| Technology | Purpose |
 |---|---|
-| Model | `llama3.2:3b` (Meta LLaMA 3.2, 3 billion parameters, 4-bit quantised by Ollama, roughly 2 GB download) |
-| Why | Small enough for a 16 GB laptop, follows instructions well, free and private, runs offline |
-| Role | **Only rewrites retrieved facts** into friendly English. It is told to use *only* the supplied context. |
-| Parameters | `temperature 0.1` (consistent answers), `num_ctx 2048`, `num_predict 220`, `top_p 0.9`, `repeat_penalty 1.1`, `keep_alive 10m` (all in `.env`) |
+| Python | Main programming language |
+| Streamlit | Chatbot web interface |
+| Ollama | Runs the language model locally |
+| LLaMA 3.2 3B | Generates responses from retrieved information |
+| scikit-learn | TF-IDF and cosine similarity for text retrieval |
+| pandas | Loads and processes the dataset |
+| pytest | Automated testing |
 
-## 6. Dataset (exactly 36 Q&A pairs)
-`data/silat_qa.csv` with columns `Question, Answer, Source, Category`.
+## 6. How SilatGuide Works
+1. The user enters a question through the Streamlit interface.
+2. The system checks the question and processes its text.
+3. TF-IDF and cosine similarity help find related information in the dataset.
+4. If relevant information is found, it is passed to LLaMA 3.2 3B through Ollama.
+5. The chatbot displays an answer and the available source information.
+6. For questions outside the dataset or unsafe requests, the system provides an appropriate response instead.
 
-| Category | # |
-|---|---:|
-| Introduction to Silat | 5 |
-| History and Origins of Silat | 5 |
-| Types and Styles of Silat | 4 |
-| Malay Culture and Heritage | 4 |
-| Basic Silat Movements and Techniques | 4 |
-| Ethics and Discipline | 4 |
-| Training Safety | 4 |
-| Traditional Clothing and Equipment | 3 |
-| General Beginner Questions | 3 |
+The dataset is stored in `data/silat_qa.csv` and contains 36 question-and-answer entries. Source information and dataset notes are available in `data/SOURCES.md` and `data/DATASET_DESCRIPTION.md`. Dataset references still require verification by the group.
 
-**Sources** (UNESCO ICH entries for Silat, JWN, JKKN, a 2025 injury study, etc.) are listed with their
-verification status in [`data/SOURCES.md`](data/SOURCES.md); collection method, preprocessing and
-limitations are in [`data/DATASET_DESCRIPTION.md`](data/DATASET_DESCRIPTION.md).
+## 7. Main Features
+- Chat interface for asking Silat-related questions.
+- Malaysian-inspired green and gold design.
+- Chatbot avatar and loading animation.
+- Suggested questions for beginners.
+- Source information for supported answers.
+- Copy-answer and clear-chat functions.
+- Fallback responses when information is unavailable or Ollama is offline.
 
-> ⚠️ **Honest status:** the dataset was drafted with GenAI help. Three sources (the UNESCO Malaysia entry, the UNESCO
-> Indonesia entry and the JWN Silat page) were read in full; most others were seen only as page excerpts. The group
-> **must open every source, check every entry and edit where needed** (see the checklist in `SOURCES.md`).
+## 8. Installation and Setup
+**Requirements:** Python 3.10 or newer, Git, and Ollama.
 
-## 7. RAG architecture
+First, install Ollama from https://ollama.com/download and download the model in PowerShell:
 
-```
-User question → Preprocessing → Dataset Retrieval → Relevant Context → LLaMA 3.2 via Ollama → Generated Answer → Streamlit Interface
-```
-Full diagram: [`docs/architecture.md`](docs/architecture.md).
-
-### System workflow
-1. **Safety/routing** (`src/utils.py`, `src/chatbot.py`): greetings get a canned reply; prompt-injection attempts and requests to hurt people are refused **before** retrieval – the LLM never sees them.
-2. **Preprocessing**: lower-case, strip punctuation, expand chat slang, canonicalise variants (`recognized`→`recognition`), remove stop-words, stem, spell-correct unknown words against the dataset vocabulary (edit distance).
-3. **Retrieval** (`src/retrieval.py`): TF-IDF word-grams + character n-grams; cosine similarity against question text, full entries and category names; top-3 returned with scores.
-4. **Relevance check**: accepted only if the blended score ≥ `SIMILARITY_THRESHOLD` (default 0.25) **and** the IDF-weighted *coverage* of the question's words in the dataset vocabulary ≥ 0.60.
-5. **Generation** (`src/llm.py`): relevant entries go into a strict system prompt; LLaMA 3.2 answers in 2–4 sentences.
-6. **Display** (`app/main.py`): a clean chat bubble with a copy icon and a collapsible **View Sources** list (only the sources stored in the dataset). Technical details (model name, scores, timings) are not shown in chat.
-
-### How low-relevance questions are handled
-* *Off-topic* ("capital of France") → no word overlap → rejected → polite fallback message, **LLM not called**.
-* *Silat-related but unanswerable* ("tuition fee at Silat schools", "scoring system") → the unknown words lower *coverage* → rejected → fallback.
-* *Borderline* → if retrieval passes but the context doesn't contain the answer, the system prompt tells LLaMA to return the same fallback text.
-* *Ollama unavailable* → the best dataset answer is shown with a short, friendly note ("the AI assistant is resting right now…") and the sidebar dot turns orange – it is never passed off as an LLM answer.
-
-Fallback text: *"Sorry, I couldn't find enough reliable information to answer your question. Could you try rephrasing it?"*
-
-## 8. Features
-Cute **chibi guide avatar** (tengkolok, baju Melayu, songket samping) · **two-fighter sparring loading animation** with small keris props (harmless, no violence) · forest-green / gold / cream theme with songket and *pucuk rebung* motifs · chat bubbles with avatars · copy-answer icon · collapsible *View Sources* · subtle connection dot in the sidebar · four welcome questions and five sidebar topics (every one checked to be answerable) · clear-chat · responsive layout (sidebar collapses on phones).
-
-| Loading animation | Out-of-scope reply |
-|---|---|
-| ![loading](docs/screenshots/02_loading_animation_mock_ollama.png) | ![fallback](docs/screenshots/03_conversation_mock_llm.png) |
-
-Artwork is generated by code (`scripts/generate_assets.py`). **To use your own artwork,** replace `app/assets/chatbot_avatar.png` and `app/assets/loading_silat.gif` (same names) – no code changes needed.
-
-## 9. Installation (Windows 10/11)
-
-### a) Install Ollama and the model
-1. Download and install **Ollama for Windows** from <https://ollama.com/download>.
-2. Open **PowerShell** and run:
-   ```powershell
-   ollama pull llama3.2:3b
-   ollama run llama3.2:3b "Say hello in one sentence"   # quick test, then type /bye
-   ```
-   The Ollama app runs in the system tray and serves `http://localhost:11434`.
-   (Ollama uses your GPU if supported, otherwise the CPU. With 16 GB RAM the 3B model is comfortable; close heavy apps for faster replies.)
-
-### b) Set up the project
 ```powershell
-git clone <your-repo-url> SilatGuide
-cd SilatGuide
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env        # optional – defaults already work
+ollama pull llama3.2:3b
 ```
 
-## 10. Run the app
+Clone this repository and open the project folder:
+
+```powershell
+git clone https://github.com/airyy-cs/csc649-group03-silatguide.git
+cd csc649-group03-silatguide
+```
+
+Set up the Python environment:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Optional configuration:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Start SilatGuide:
+
 ```powershell
 streamlit run app/main.py
 ```
-(or double-click `run_windows.bat`). Open <http://localhost:8501>. A small dot at the bottom of the sidebar shows **Connected** when Ollama and the model are ready.
-If it shows *Offline*, the app still works but answers come straight from the dataset with a short note.
 
-Regenerate artwork (optional): `python scripts/generate_assets.py`
+Open `http://localhost:8501` if the browser does not open automatically.
 
-## 11. Testing
+**Note:** The application can only run from this repository once the `app/`, `src/`, and `data/` files have been added. If PowerShell blocks virtual-environment activation, use Command Prompt with `.venv\Scripts\activate.bat` or review the Windows execution-policy settings.
+
+## 9. Testing
+Automated tests are available in the `tests/` folder. Run them using:
+
 ```powershell
-pytest -v                                  # fast tests, no Ollama needed
-set RUN_OLLAMA_TESTS=1 && pytest -v -k live   # optional live test (Ollama running)
-```
-`tests/test_cases.csv` holds 37 labelled questions (exact, paraphrase, informal, misspelled, off-topic, insufficient-context, unsafe, injection); `tests/test_retrieval.py` also tests dataset integrity, routing, Ollama failure handling and the HTTP client.
-
-### Test status – what was and wasn't actually run
-| Check | Status |
-|---|---|
-| 69 pytest items: **67 passed, 1 skipped** (live Ollama test), **1 expected failure** (documented limitation) | ✅ **Executed** by the AI assistant in a Linux sandbox on 21 Nov 2026 |
-| Streamlit `AppTest` smoke test (welcome → click suggestion → ask off-topic question) | ✅ Executed in the sandbox |
-| Headless-browser screenshots of the real UI, including the loading animation against a **mock** Ollama server (5 s delay) | ✅ Executed in the sandbox |
-| HTTP client behaviour against a **mocked** Ollama API | ✅ Executed (mock, not the real service) |
-| Real **LLaMA 3.2 3B answers**, their quality, speed and memory use on the MSI Thin B12UC | ❌ **Not executed** – Ollama is not available in the sandbox. The group must test this. |
-| Windows install instructions | ❌ Not executed |
-| Group's own full test run + results table | ⬜ TODO – add your results below |
-
-**Group results:** `TODO – date, machine, pytest output, 5+ real sample conversations (good and bad)`
-
-**Tuning note:** the similarity threshold (0.25) and coverage gate (0.60) were chosen by the drafter on a
-development set of about 70 questions, then checked on 37 labelled cases. On that first check 5 cases failed; the spell-corrector, a few synonyms
-and one safety pattern were improved, and one paraphrase (T08) was reworded with the original kept as a
-documented expected failure. Because the cases influenced the fixes, the results are optimistic: re-tune and
-re-test with your own unseen questions.
-
-## 12. Limitations
-* Only 36 entries – many valid questions are (intentionally) unanswered.
-* Retrieval is **lexical**: it cannot understand all paraphrases (e.g. "put on" ≠ "wear" – an expected-fail test documents this) and may match a loosely related entry (e.g. "who made Silat?" matches "What is Silat?"; the LLM prompt then has to decline).
-* Safety/injection filters are keyword rules – they can be bypassed by creative phrasing and may rarely block a harmless question.
-* A 3B model can still paraphrase imperfectly; the grounded prompt and low temperature reduce, but do not eliminate, errors. Always check the shown sources.
-* Facts depend on the verification status in `data/SOURCES.md`.
-* Dataset is English only; no conversation memory (each question is answered independently).
-* The injury statistics come from one regional study of adolescents.
-* SilatGuide gives **information only**, not training or medical advice.
-
-## 13. Future improvements
-Sentence-embedding retrieval · more verified entries (with an instructor's review) · Malay-language support · conversation memory · streaming answers · feedback buttons · evaluation with real learners.
-
-## 14. Project structure
-```
-app/        main.py, styles.css, assets/ (avatar PNG, loading GIF)
-src/        chatbot.py (RAG flow) · llm.py (Ollama) · retrieval.py (TF-IDF) · utils.py (settings, safety)
-data/       silat_qa.csv · SOURCES.md · DATASET_DESCRIPTION.md
-tests/      test_cases.csv · test_retrieval.py
-scripts/    generate_assets.py
-docs/       architecture.md, screenshots/, (slides, notes, GitHub evidence → TODO)
+pytest -v
 ```
 
-## 15. GitHub teamwork  *(TODO – genuine evidence only)*
-Follow the CSC649 rules: issues + project board, branches + reviewed pull requests, ≥10 meaningful commits per member on ≥5 days in ≥3 weeks, own account, no secrets, make the repo **Public** on submission day, and add the lecturer (`tengkuzatul`) as collaborator by end of Week 6.
-Suggested split: Leader → README/tests/docs · Frontend → `app/` · Backend → `src/` · Domain specialist → `data/` and test questions.
-Please **do not commit this whole project in one batch**: each member should commit and explain their own part.
+The project files include automated test cases for retrieval, safety checks, and error handling. Earlier development tests were run in a separate environment, but the group must record its own results after testing on its devices.
 
-## 16. GenAI usage declaration  *(CSC649 Tahap 3 – Kolaborasi Hibrid)*
-The initial project scaffold (code structure, Streamlit interface, retrieval and Ollama integration, tests, artwork generation script, dataset draft and documentation) was drafted with **Claude (Anthropic)** from the group's brief. Web sources were consulted by the assistant to draft the dataset; its verification status is recorded in `data/SOURCES.md`.
-The group must: review, test and understand every file; verify the sources; make their own edits through their own commits; and complete the FSKM declaration at <https://kbg-pelajar-fskm.web.app>.
-`TODO – each member adds a sentence on what they personally changed/wrote and how they used GenAI.`
+**Group testing results:**
+- Test date: [To be added]
+- Device: [To be added]
+- Automated test results: [To be added]
+- Actual chatbot questions and findings: [To be added]
 
-## 17. Acknowledgements
-UNESCO Intangible Cultural Heritage, Jabatan Warisan Negara Malaysia, JKKN, Meta (LLaMA 3.2), Ollama, Streamlit.
+## 10. Current Limitations
+- The dataset contains only 36 entries, so not all Silat questions can be answered.
+- The current chatbot and dataset use English.
+- Retrieval may not recognise every way of phrasing a question.
+- LLaMA responses may still contain mistakes.
+- Ollama must be running for language-model-generated responses.
+- Dataset sources should be checked before relying on the information.
+
+## 11. Future Improvements
+Possible improvements include adding more verified dataset entries, supporting Bahasa Melayu, improving question matching, and collecting feedback from users.
+
+## 12. Project Folder Structure
+```text
+SilatGuide/
+├── app/          # Streamlit interface and assets
+├── src/          # Chatbot, retrieval, and Ollama code
+├── data/         # Silat dataset and sources
+├── tests/        # Test files
+├── docs/         # Documentation and screenshots
+├── scripts/      # Asset generation script
+├── requirements.txt
+├── .env.example
+└── README.md
+```
+
+## 13. GitHub Collaboration
+The group uses GitHub to manage project files and record contributions. Each member is responsible for reviewing, testing, and improving their assigned parts. Changes should be committed through the member's own account, with pull requests and reviews where appropriate.
+
+GitHub issues, pull requests, and test evidence will be updated as work is completed.
+
+## 14. Generative AI Declaration
+Generative AI assistance was used to prepare the initial project structure, code, interface, dataset draft, tests, and documentation. Group members are responsible for understanding, checking, testing, and improving the project, including verifying dataset references.
+
+
+
+## 15. References and Acknowledgements
+Dataset references are recorded in `data/SOURCES.md`. The project also uses Python, Streamlit, Ollama, Meta's LLaMA 3.2 model, and other open-source Python libraries.
