@@ -31,8 +31,30 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
+# Suggested questions
+st.subheader("Suggested Questions")
+
+questions = [
+    "What is Silat?",
+    "What is the difference between Silat and Pencak Silat?",
+    "How can beginners learn Silat safely?"
+]
+
+# Display suggested question buttons
+cols = st.columns(3)
+selected_question = None
+
+for i, question in enumerate(questions):
+    with cols[i]:
+        if st.button(question, key=f"question_{i}", use_container_width=True):
+            selected_question = question
+
 # Chat input
-if prompt := st.chat_input("Ask me anything about Silat..."):
+typed_question = st.chat_input("Ask me anything about Silat...")
+
+prompt = selected_question or typed_question
+
+if prompt:
 
     # Display user's message
     st.session_state.messages.append({
