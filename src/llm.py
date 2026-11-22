@@ -1,15 +1,25 @@
-"""Local LLM integration for SilatGuide using Ollama."""
+"""Local LLM access through Ollama (default model: llama3.2:3b).
 
+No API key and no internet are needed at run time: Ollama serves the model on
+http://localhost:11434. Every failure mode raises a specific exception so the chatbot can
+tell the user *why* the LLM could not answer instead of silently pretending.
+"""
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 import requests
- 
+
 from .utils import FALLBACK_MESSAGE, Settings
 
+log = logging.getLogger(__name__)
 
+
+# --------------------------------------------------------------------------- errors
 class OllamaError(Exception):
+    """Base class. `user_message` is safe to show in the UI."""
+
     user_message = "The local language model could not be used."
 
     def __init__(self, detail: str = ""):
@@ -18,15 +28,15 @@ class OllamaError(Exception):
 
 
 class OllamaUnavailable(OllamaError):
-    user_message = "Ollama is not running. Start Ollama and try again."
+    user_message = "Ollama is not running. Start the Ollama app (or run `ollama serve`) and try again."
 
 
 class OllamaModelMissing(OllamaError):
-    user_message = "The model is missing. Run ollama pull llama3.2:3b."
+    user_message = "The model is not installed yet. Run `ollama pull llama3.2:3b` and try again."
 
 
 class OllamaTimeout(OllamaError):
-    user_message = "The model took too long to answer."
+    user_message = "The model took too long to answer. Try again, or close other heavy programs to free RAM."
 
 
 class OllamaBadResponse(OllamaError):
