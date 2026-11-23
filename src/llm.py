@@ -121,3 +121,11 @@ class OllamaClient:
                 "repeat_penalty": 1.1,
             },
         }
+         try:
+            r = requests.post(f"{self.s.ollama_host}/api/chat", json=payload, timeout=self.s.timeout_seconds)
+        except requests.exceptions.ConnectionError as exc:
+            raise OllamaUnavailable(str(exc)) from exc
+        except requests.exceptions.Timeout as exc:
+            raise OllamaTimeout(str(exc)) from exc
+        except requests.exceptions.RequestException as exc:
+            raise OllamaError(str(exc)) from exc
