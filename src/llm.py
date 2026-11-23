@@ -103,3 +103,13 @@ class OllamaClient:
             else wanted in names
         st.message = "Connected" if st.model_ready else OllamaModelMissing.user_message
         return st 
+          # -- answer generation
+    def generate(self, question: str, context: list[dict]) -> str:
+        payload = {
+            "model": self.s.ollama_model,
+            "stream": False,
+            "keep_alive": self.s.keep_alive,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": build_user_prompt(question, context)},
+            ],
