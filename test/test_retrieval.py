@@ -11,3 +11,15 @@ What these tests DO cover (no GPU / Ollama needed):
 What they do NOT cover: the quality of real LLaMA 3.2 answers. That needs a manual check on a
 machine with Ollama installed; an optional live test is provided (set RUN_OLLAMA_TESTS=1).
 """
+from __future__ import annotations
+
+import csv
+import os
+import sys
+from pathlib import Path
+
+import pytest
+import requests
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
