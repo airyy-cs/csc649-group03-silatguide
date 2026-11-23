@@ -113,3 +113,11 @@ class OllamaClient:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": build_user_prompt(question, context)},
             ],
+               "options": {
+                "temperature": self.s.temperature,   # low = consistent, fact-sticking
+                "top_p": 0.9,
+                "num_ctx": self.s.num_ctx,           # small context -> less RAM
+                "num_predict": self.s.num_predict,   # hard cap on answer length
+                "repeat_penalty": 1.1,
+            },
+        }
