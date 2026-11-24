@@ -99,3 +99,52 @@ def img_src(name: str, mime: str) -> str:
 def inject_css() -> None:
     css = (APP_DIR / "styles.css").read_text(encoding="utf-8")
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    
+# ------------------------------------------------------------------------- rendering
+def _safe_url(url: str) -> str:
+    return url if re.match(r"^https?://", url) else ""
+
+
+def sources_html(sources: list[dict]) -> str:
+    """Collapsible 'View Sources'. Shows only what is in the dataset's Source column."""
+    seen: list[str] = []
+    for s in sources:
+        for ref in s.get("sources", []):
+            if ref not in seen:
+                seen.append(ref)
+    items = []
+    for ref in seen:
+        if ref.startswith("Team-written"):
+            # Guidance written by the team, not one published source: say so plainly.
+            items.append("<li>Team-written beginner guidance (not a quotation from a single published source)</li>")
+            continue
+        name, sep, url = ref.partition(" - http")
+        url = _safe_url("http" + url) if sep else ""
+        label = html.escape(name.strip())
+        items.append(f"<li><a href='{html.escape(url)}' target='_blank' rel='noopener noreferrer'>{label}</a></li>"
+                     if url else f"<li>{label}</li>")
+    if not items:
+        return ""
+    return f"<details class='sg-src'><summary>View Sources</summary><ul>{''.join(items)}</ul></details>"
+
+
+def message_html(msg: dict, bot_av: str) -> str:
+    if msg["role"] == "user":
+        text = html.escape(msg["content"]).replace("\n", "<br>")
+        return f"<div class='sg-msg user'><div class='sg-bubble'>{text}</div></div>"
+    note = ""
+    if msg.get("mode") == MODE_DATASET:  # friendly, non-technical honesty note
+        note = ("<div class='sg-note'>The AI assistant is resting right now, so this answer comes "
+                "straight from SilatGuide's saved information.</div>")
+    copy_btn = f"<button class='sg-copy' type='button' title='Copy answer' aria-label='Copy answer'>{COPY_ICON}</button>"
+    return (f"<div class='sg-msg bot'><img class='sg-av' src='{bot_av}' alt='SilatGuide'/>"
+            f"<div class='sg-bubble'><div class='sg-text'>{render_basic_markdown(msg['content'])}</div>{note}"
+            f"<div class='sg-foot'>{sources_html(msg.get('sources', []))}{copy_btn}</div></div></div>")
+
+
+def loading_html(bot_av: str, gif: str) -> str:
+    return (f"<div class='sg-msg bot'><img class='sg-av' src='{bot_av}' alt=''/>"
+            f"<div class='sg-loading'><img src='{gif}' alt='Two tiny Silat friends sparring playfully'/>"
+            f"<div><div class='t'>SilatGuide is preparing your answer...</div>"
+            f"<div class='s'>Gathering what I know about Silat</div>"
+            f"<div class='sg-dots'><span></span><span></span><span></span></div></div></div></div>")
