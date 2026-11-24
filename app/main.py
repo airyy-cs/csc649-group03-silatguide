@@ -74,3 +74,28 @@ PAGE_SCRIPT = """<script>
   if (msgs.length) { msgs[msgs.length - 1].scrollIntoView({behavior: 'smooth', block: 'end'}); }
 })();
 </script><!-- messages:%d -->"""
+
+# ------------------------------------------------------------------ cached resources
+@st.cache_resource(show_spinner=False)
+def get_bot() -> SilatGuideBot:
+    return SilatGuideBot()
+
+
+@st.cache_data(show_spinner=False)
+def b64(path: str) -> str:
+    return base64.b64encode(Path(path).read_bytes()).decode()
+
+
+@st.cache_data(ttl=10, show_spinner=False)
+def ollama_status(_host: str, _model: str):
+    return get_bot().llm.status()
+
+
+def img_src(name: str, mime: str) -> str:
+    p = ASSETS / name
+    return f"data:{mime};base64,{b64(str(p))}" if p.exists() else ""
+
+
+def inject_css() -> None:
+    css = (APP_DIR / "styles.css").read_text(encoding="utf-8")
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
