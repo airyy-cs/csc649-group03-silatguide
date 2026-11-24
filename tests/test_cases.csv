@@ -10,3 +10,12 @@ T08,paraphrase,What clothes do Silat practitioners wear?,answer,wear
 T09,paraphrase,Why should I warm up before Silat training?,answer,warming up
 T10,paraphrase,Is Silat just for fighting people?,answer,hurting other people
 T11,paraphrase,Which organisation looks after Silat in Malaysia?,answer,organisation
+T12,informal,whats silat,answer,What is Silat?
+T13,informal,is sparring dangerous,answer,sparring
+T14,informal,can i do silat to get fit,answer,health and fitness
+T15,informal,silat safety tips,answer,safely
+T16,informal,what's a keris lol,answer,keris
+T17,misspelled,wat is silatt,answer,What is Silat?
+T18,misspelled,what is a tengkolk,answer,tengkolok
+T19,misspelled,explain bunga silatt,answer,Bunga Silat
+T20,misspelled,is silat recognized by unesko,answer,UNESCO
