@@ -1,0 +1,12 @@
+id,test_type,question,expected_behavior,expected_top_question_contains
+T01,exact,What is Silat?,answer,What is Silat?
+T02,exact,Is Silat recognised by UNESCO?,answer,recognised by UNESCO
+T03,exact,What is a tengkolok?,answer,tengkolok
+T04,exact,How can beginners learn Silat safely?,answer,beginners learn Silat safely
+T05,exact,What is Silat Harimau?,answer,Harimau
+T06,paraphrase,Can you tell me about the history of Silat in Malaysia?,answer,history
+T07,paraphrase,What kinds of Silat styles exist in Malaysia?,answer,different types of Silat
+T08,paraphrase,What clothes do Silat practitioners wear?,answer,wear
+T09,paraphrase,Why should I warm up before Silat training?,answer,warming up
+T10,paraphrase,Is Silat just for fighting people?,answer,hurting other people
+T11,paraphrase,Which organisation looks after Silat in Malaysia?,answer,organisation
