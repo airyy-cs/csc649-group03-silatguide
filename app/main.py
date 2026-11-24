@@ -99,7 +99,7 @@ def img_src(name: str, mime: str) -> str:
 def inject_css() -> None:
     css = (APP_DIR / "styles.css").read_text(encoding="utf-8")
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
-    
+
 # ------------------------------------------------------------------------- rendering
 def _safe_url(url: str) -> str:
     return url if re.match(r"^https?://", url) else ""
@@ -148,3 +148,33 @@ def loading_html(bot_av: str, gif: str) -> str:
             f"<div><div class='t'>SilatGuide is preparing your answer...</div>"
             f"<div class='s'>Gathering what I know about Silat</div>"
             f"<div class='sg-dots'><span></span><span></span><span></span></div></div></div></div>")
+
+def ask(q: str) -> None:
+    st.session_state.pending = q
+    st.rerun()
+
+
+def render_sidebar(bot_av: str, s: Settings) -> None:
+    with st.sidebar:
+        st.markdown(
+            f"<div class='sg-brand'><img src='{bot_av}' alt=''/><div><div class='ttl'>SilatGuide</div>"
+            "<span>Malaysian Silat companion</span></div></div>"
+            "<div class='sg-desc'>Your friendly guide to the art, history and traditions of Malaysian Silat.</div>",
+            unsafe_allow_html=True)
+
+        if st.button("🗑️  Clear conversation", key="clear", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.pending = None
+            st.rerun()
+
+        st.markdown("<div class='sg-h4'>Suggested topics</div>", unsafe_allow_html=True)
+        for label, q in TOPICS:
+            if st.button(label, key=f"topic_{label}", use_container_width=True):
+                ask(q)
+
+        stt = ollama_status(s.ollama_host, s.ollama_model)
+        on = stt.ok
+        title = "Connected" if on else ("Model not installed" if stt.reachable else "Offline")
+        st.markdown(f"<div class='sg-conn' title='{title}'><span class='sg-dot {'on' if on else 'off'}'></span>"
+                    f"{'Connected' if on else 'Offline'}</div>", unsafe_allow_html=True)
+
