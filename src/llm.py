@@ -103,3 +103,41 @@ class OllamaClient:
             else wanted in names
         st.message = "Connected" if st.model_ready else OllamaModelMissing.user_message
         return st 
+          # -- answer generation
+    def generate(self, question: str, context: list[dict]) -> str:
+        payload = {
+            "model": self.s.ollama_model,
+            "stream": False,
+            "keep_alive": self.s.keep_alive,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": build_user_prompt(question, context)},
+            ],
+               "options": {
+                "temperature": self.s.temperature,   # low = consistent, fact-sticking
+                "top_p": 0.9,
+                "num_ctx": self.s.num_ctx,           # small context -> less RAM
+                "num_predict": self.s.num_predict,   # hard cap on answer length
+                "repeat_penalty": 1.1,
+            },
+        }
+         try:
+            r = requests.post(f"{self.s.ollama_host}/api/chat", json=payload, timeout=self.s.timeout_seconds)
+        except requests.exceptions.ConnectionError as exc:
+            raise OllamaUnavailable(str(exc)) from exc
+        except requests.exceptions.Timeout as exc:
+            raise OllamaTimeout(str(exc)) from exc
+        except requests.exceptions.RequestException as exc:
+            raise OllamaError(str(exc)) from exc
+
+        if r.status_code == 404:
+            raise OllamaModelMissing(r.text[:200])
+        if r.status_code != 200:
+            raise OllamaBadResponse(f"HTTP {r.status_code}: {r.text[:200]}")
+        try:
+            text = r.json()["message"]["content"].strip()
+        except (ValueError, KeyError, TypeError) as exc:
+            raise OllamaBadResponse("Missing 'message.content' in reply") from exc
+        if not text:
+            raise OllamaBadResponse("Empty answer from model")
+        return text
