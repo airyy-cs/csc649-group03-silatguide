@@ -178,3 +178,14 @@ def render_sidebar(bot_av: str, s: Settings) -> None:
         st.markdown(f"<div class='sg-conn' title='{title}'><span class='sg-dot {'on' if on else 'off'}'></span>"
                     f"{'Connected' if on else 'Offline'}</div>", unsafe_allow_html=True)
 
+def render_welcome(bot_av: str) -> None:
+    st.markdown(
+        f"<div class='sg-hero'><img src='{bot_av}' alt='SilatGuide mascot'/><div class='txt'>"
+        "<div class='sg-eyebrow'>Seni Silat · Warisan Malaysia</div>"
+        "<h2>Welcome to SilatGuide</h2>"
+        "<p>Discover the art, history, traditions and cultural heritage of Malaysian Silat.</p>"
+        "</div></div><div class='sg-section'>✨ Try asking</div>", unsafe_allow_html=True)
+    cols = st.columns(2)
+    for i, (icon, q) in enumerate(SUGGESTIONS):
+        if cols[i % 2].button(f"{icon}  {q}", key=f"sug_{i}", use_container_width=True):
+            ask(q)
