@@ -21,3 +21,13 @@ from .utils import (
     THANKS_MESSAGE, Settings, is_greeting, is_harmful_request, is_prompt_injection, is_thanks,
     split_sources,
 )
+
+log = logging.getLogger(__name__)
+
+# Response modes (the UI shows a different badge for each one)
+MODE_LLM = "llm"                      # answered by LLaMA 3.2 using retrieved context
+MODE_DATASET = "dataset_fallback"     # Ollama unavailable -> raw dataset answer, clearly labelled
+MODE_OUT_OF_SCOPE = "out_of_scope"    # nothing relevant in the dataset
+MODE_REFUSED = "refused"              # unsafe request
+MODE_INJECTION = "injection_refused"  # attempt to override the rules
+MODE_SMALLTALK = "smalltalk"          # greeting / thanks / empty
