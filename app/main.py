@@ -74,3 +74,118 @@ PAGE_SCRIPT = """<script>
   if (msgs.length) { msgs[msgs.length - 1].scrollIntoView({behavior: 'smooth', block: 'end'}); }
 })();
 </script><!-- messages:%d -->"""
+
+# ------------------------------------------------------------------ cached resources
+@st.cache_resource(show_spinner=False)
+def get_bot() -> SilatGuideBot:
+    return SilatGuideBot()
+
+
+@st.cache_data(show_spinner=False)
+def b64(path: str) -> str:
+    return base64.b64encode(Path(path).read_bytes()).decode()
+
+
+@st.cache_data(ttl=10, show_spinner=False)
+def ollama_status(_host: str, _model: str):
+    return get_bot().llm.status()
+
+
+def img_src(name: str, mime: str) -> str:
+    p = ASSETS / name
+    return f"data:{mime};base64,{b64(str(p))}" if p.exists() else ""
+
+
+def inject_css() -> None:
+    css = (APP_DIR / "styles.css").read_text(encoding="utf-8")
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
+# ------------------------------------------------------------------------- rendering
+def _safe_url(url: str) -> str:
+    return url if re.match(r"^https?://", url) else ""
+
+
+def sources_html(sources: list[dict]) -> str:
+    """Collapsible 'View Sources'. Shows only what is in the dataset's Source column."""
+    seen: list[str] = []
+    for s in sources:
+        for ref in s.get("sources", []):
+            if ref not in seen:
+                seen.append(ref)
+    items = []
+    for ref in seen:
+        if ref.startswith("Team-written"):
+            # Guidance written by the team, not one published source: say so plainly.
+            items.append("<li>Team-written beginner guidance (not a quotation from a single published source)</li>")
+            continue
+        name, sep, url = ref.partition(" - http")
+        url = _safe_url("http" + url) if sep else ""
+        label = html.escape(name.strip())
+        items.append(f"<li><a href='{html.escape(url)}' target='_blank' rel='noopener noreferrer'>{label}</a></li>"
+                     if url else f"<li>{label}</li>")
+    if not items:
+        return ""
+    return f"<details class='sg-src'><summary>View Sources</summary><ul>{''.join(items)}</ul></details>"
+
+
+def message_html(msg: dict, bot_av: str) -> str:
+    if msg["role"] == "user":
+        text = html.escape(msg["content"]).replace("\n", "<br>")
+        return f"<div class='sg-msg user'><div class='sg-bubble'>{text}</div></div>"
+    note = ""
+    if msg.get("mode") == MODE_DATASET:  # friendly, non-technical honesty note
+        note = ("<div class='sg-note'>The AI assistant is resting right now, so this answer comes "
+                "straight from SilatGuide's saved information.</div>")
+    copy_btn = f"<button class='sg-copy' type='button' title='Copy answer' aria-label='Copy answer'>{COPY_ICON}</button>"
+    return (f"<div class='sg-msg bot'><img class='sg-av' src='{bot_av}' alt='SilatGuide'/>"
+            f"<div class='sg-bubble'><div class='sg-text'>{render_basic_markdown(msg['content'])}</div>{note}"
+            f"<div class='sg-foot'>{sources_html(msg.get('sources', []))}{copy_btn}</div></div></div>")
+
+
+def loading_html(bot_av: str, gif: str) -> str:
+    return (f"<div class='sg-msg bot'><img class='sg-av' src='{bot_av}' alt=''/>"
+            f"<div class='sg-loading'><img src='{gif}' alt='Two tiny Silat friends sparring playfully'/>"
+            f"<div><div class='t'>SilatGuide is preparing your answer...</div>"
+            f"<div class='s'>Gathering what I know about Silat</div>"
+            f"<div class='sg-dots'><span></span><span></span><span></span></div></div></div></div>")
+
+def ask(q: str) -> None:
+    st.session_state.pending = q
+    st.rerun()
+
+
+def render_sidebar(bot_av: str, s: Settings) -> None:
+    with st.sidebar:
+        st.markdown(
+            f"<div class='sg-brand'><img src='{bot_av}' alt=''/><div><div class='ttl'>SilatGuide</div>"
+            "<span>Malaysian Silat companion</span></div></div>"
+            "<div class='sg-desc'>Your friendly guide to the art, history and traditions of Malaysian Silat.</div>",
+            unsafe_allow_html=True)
+
+        if st.button("🗑️  Clear conversation", key="clear", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.pending = None
+            st.rerun()
+
+        st.markdown("<div class='sg-h4'>Suggested topics</div>", unsafe_allow_html=True)
+        for label, q in TOPICS:
+            if st.button(label, key=f"topic_{label}", use_container_width=True):
+                ask(q)
+
+        stt = ollama_status(s.ollama_host, s.ollama_model)
+        on = stt.ok
+        title = "Connected" if on else ("Model not installed" if stt.reachable else "Offline")
+        st.markdown(f"<div class='sg-conn' title='{title}'><span class='sg-dot {'on' if on else 'off'}'></span>"
+                    f"{'Connected' if on else 'Offline'}</div>", unsafe_allow_html=True)
+
+def render_welcome(bot_av: str) -> None:
+    st.markdown(
+        f"<div class='sg-hero'><img src='{bot_av}' alt='SilatGuide mascot'/><div class='txt'>"
+        "<div class='sg-eyebrow'>Seni Silat · Warisan Malaysia</div>"
+        "<h2>Welcome to SilatGuide</h2>"
+        "<p>Discover the art, history, traditions and cultural heritage of Malaysian Silat.</p>"
+        "</div></div><div class='sg-section'>✨ Try asking</div>", unsafe_allow_html=True)
+    cols = st.columns(2)
+    for i, (icon, q) in enumerate(SUGGESTIONS):
+        if cols[i % 2].button(f"{icon}  {q}", key=f"sug_{i}", use_container_width=True):
+            ask(q)
