@@ -31,3 +31,14 @@ MODE_OUT_OF_SCOPE = "out_of_scope"    # nothing relevant in the dataset
 MODE_REFUSED = "refused"              # unsafe request
 MODE_INJECTION = "injection_refused"  # attempt to override the rules
 MODE_SMALLTALK = "smalltalk"          # greeting / thanks / empty
+
+
+@dataclass
+class BotResponse:
+    text: str
+    mode: str
+    sources: list[dict] = field(default_factory=list)   # [{question, source, category, score}]
+    error: str = ""                                      # user-safe reason if the LLM failed
+    latency_s: float = 0.0
+    used_llm: bool = False
+    top_score: float = 0.0
