@@ -129,3 +129,15 @@ class OllamaClient:
             raise OllamaTimeout(str(exc)) from exc
         except requests.exceptions.RequestException as exc:
             raise OllamaError(str(exc)) from exc
+
+        if r.status_code == 404:
+            raise OllamaModelMissing(r.text[:200])
+        if r.status_code != 200:
+            raise OllamaBadResponse(f"HTTP {r.status_code}: {r.text[:200]}")
+        try:
+            text = r.json()["message"]["content"].strip()
+        except (ValueError, KeyError, TypeError) as exc:
+            raise OllamaBadResponse("Missing 'message.content' in reply") from exc
+        if not text:
+            raise OllamaBadResponse("Empty answer from model")
+        return text
