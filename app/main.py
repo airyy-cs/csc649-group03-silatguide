@@ -189,3 +189,53 @@ def render_welcome(bot_av: str) -> None:
     for i, (icon, q) in enumerate(SUGGESTIONS):
         if cols[i % 2].button(f"{icon}  {q}", key=f"sug_{i}", use_container_width=True):
             ask(q)
+
+# ------------------------------------------------------------------------------ main
+def main() -> None:
+    inject_css()
+    s = Settings.from_env()
+    st.session_state.setdefault("messages", [])
+    st.session_state.setdefault("pending", None)
+
+    try:
+        bot = get_bot()
+    except Exception as exc:  # dataset missing/invalid -> clear error instead of a crash
+        st.error(f"SilatGuide could not start: {exc}")
+        st.stop()
+
+    bot_av = img_src("chatbot_avatar.png", "image/png")
+    gif = img_src("loading_silat.gif", "image/gif")
+    render_sidebar(bot_av, s)
+
+       typed = st.chat_input("Ask me anything about Silat...")
+    question = typed or st.session_state.pending
+    st.session_state.pending = None
+
+    if not st.session_state.messages and not question:
+        render_welcome(bot_av)
+        return
+
+    if question:
+        st.session_state.messages.append({"role": "user", "content": question})
+
+    st.markdown("<div class='sg-chat'>" + "".join(message_html(m, bot_av) for m in st.session_state.messages) + "</div>",
+                unsafe_allow_html=True)
+
+   if question:
+        slot = st.empty()
+        slot.markdown(loading_html(bot_av, gif), unsafe_allow_html=True)
+        try:
+            resp: BotResponse = bot.answer(question)
+        except Exception:  # last-resort guard so the UI never crashes
+            resp = BotResponse(text="Sorry, something went wrong while preparing your answer. Please try again.",
+                               mode=MODE_OUT_OF_SCOPE)
+        slot.empty()
+        st.session_state.messages.append({
+            "role": "assistant", "content": resp.text, "mode": resp.mode, "sources": resp.sources,
+        })
+        st.rerun()
+
+    components.html(PAGE_SCRIPT % len(st.session_state.messages), height=0)
+
+
+main()
