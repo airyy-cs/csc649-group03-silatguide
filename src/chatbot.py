@@ -58,7 +58,7 @@ class SilatGuideBot:
             top_k=self.settings.top_k,
         )
         self.llm = llm or OllamaClient(self.settings)
-        
+
  # ------------------------------------------------------------------ helpers
     @staticmethod
     def _source_dicts(matches: list[Match]) -> list[dict]:
@@ -75,3 +75,23 @@ class SilatGuideBot:
         def done(resp: BotResponse) -> BotResponse:
             resp.latency_s = round(time.perf_counter() - t0, 2)
             return resp
+            
+        q = (question or "").strip()
+        if not q:
+            return done(BotResponse(EMPTY_MESSAGE, MODE_SMALLTALK))
+        if is_greeting(q):
+            return done(BotResponse(GREETING_MESSAGE, MODE_SMALLTALK))
+        if is_thanks(q):
+            return done(BotResponse(THANKS_MESSAGE, MODE_SMALLTALK))
+        if is_prompt_injection(q):
+            return done(BotResponse(INJECTION_MESSAGE, MODE_INJECTION))
+        if is_harmful_request(q):
+            return done(BotResponse(SAFETY_MESSAGE, MODE_REFUSED))
+
+        result: RetrievalResult = self.retriever.search(q)
+        if not result.is_relevant:
+            return done(BotResponse(FALLBACK_MESSAGE, MODE_OUT_OF_SCOPE, top_score=result.top_score))
+
+        matches = result.relevant_matches
+        sources = self._source_dicts(matches)
+        context = [{"question": m.question, "answer": m.answer} for m in matches]
