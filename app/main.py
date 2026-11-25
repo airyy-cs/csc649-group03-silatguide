@@ -206,3 +206,17 @@ def main() -> None:
     bot_av = img_src("chatbot_avatar.png", "image/png")
     gif = img_src("loading_silat.gif", "image/gif")
     render_sidebar(bot_av, s)
+
+       typed = st.chat_input("Ask me anything about Silat...")
+    question = typed or st.session_state.pending
+    st.session_state.pending = None
+
+    if not st.session_state.messages and not question:
+        render_welcome(bot_av)
+        return
+
+    if question:
+        st.session_state.messages.append({"role": "user", "content": question})
+
+    st.markdown("<div class='sg-chat'>" + "".join(message_html(m, bot_av) for m in st.session_state.messages) + "</div>",
+                unsafe_allow_html=True)
