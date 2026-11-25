@@ -42,3 +42,19 @@ class BotResponse:
     latency_s: float = 0.0
     used_llm: bool = False
     top_score: float = 0.0
+    
+
+class SilatGuideBot:
+    def __init__(
+        self,
+        retriever: SilatRetriever | None = None,
+        llm: OllamaClient | None = None,
+        settings: Settings | None = None,
+    ):
+        self.settings = settings or Settings.from_env()
+        self.retriever = retriever or SilatRetriever(
+            self.settings.dataset_path,
+            threshold=self.settings.similarity_threshold,
+            top_k=self.settings.top_k,
+        )
+        self.llm = llm or OllamaClient(self.settings)
