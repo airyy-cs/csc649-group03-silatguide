@@ -58,3 +58,20 @@ class SilatGuideBot:
             top_k=self.settings.top_k,
         )
         self.llm = llm or OllamaClient(self.settings)
+        
+ # ------------------------------------------------------------------ helpers
+    @staticmethod
+    def _source_dicts(matches: list[Match]) -> list[dict]:
+        return [
+            {"question": m.question, "source": m.source, "sources": split_sources(m.source),
+             "category": m.category, "score": round(m.score, 3)}
+            for m in matches
+        ]
+
+    # ------------------------------------------------------------------ main entry
+    def answer(self, question: str) -> BotResponse:
+        t0 = time.perf_counter()
+
+        def done(resp: BotResponse) -> BotResponse:
+            resp.latency_s = round(time.perf_counter() - t0, 2)
+            return resp
