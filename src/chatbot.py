@@ -42,3 +42,72 @@ class BotResponse:
     latency_s: float = 0.0
     used_llm: bool = False
     top_score: float = 0.0
+    
+
+class SilatGuideBot:
+    def __init__(
+        self,
+        retriever: SilatRetriever | None = None,
+        llm: OllamaClient | None = None,
+        settings: Settings | None = None,
+    ):
+        self.settings = settings or Settings.from_env()
+        self.retriever = retriever or SilatRetriever(
+            self.settings.dataset_path,
+            threshold=self.settings.similarity_threshold,
+            top_k=self.settings.top_k,
+        )
+        self.llm = llm or OllamaClient(self.settings)
+
+ # ------------------------------------------------------------------ helpers
+    @staticmethod
+    def _source_dicts(matches: list[Match]) -> list[dict]:
+        return [
+            {"question": m.question, "source": m.source, "sources": split_sources(m.source),
+             "category": m.category, "score": round(m.score, 3)}
+            for m in matches
+        ]
+
+    # ------------------------------------------------------------------ main entry
+    def answer(self, question: str) -> BotResponse:
+        t0 = time.perf_counter()
+
+        def done(resp: BotResponse) -> BotResponse:
+            resp.latency_s = round(time.perf_counter() - t0, 2)
+            return resp
+            
+        q = (question or "").strip()
+        if not q:
+            return done(BotResponse(EMPTY_MESSAGE, MODE_SMALLTALK))
+        if is_greeting(q):
+            return done(BotResponse(GREETING_MESSAGE, MODE_SMALLTALK))
+        if is_thanks(q):
+            return done(BotResponse(THANKS_MESSAGE, MODE_SMALLTALK))
+        if is_prompt_injection(q):
+            return done(BotResponse(INJECTION_MESSAGE, MODE_INJECTION))
+        if is_harmful_request(q):
+            return done(BotResponse(SAFETY_MESSAGE, MODE_REFUSED))
+
+        result: RetrievalResult = self.retriever.search(q)
+        if not result.is_relevant:
+            return done(BotResponse(FALLBACK_MESSAGE, MODE_OUT_OF_SCOPE, top_score=result.top_score))
+
+        matches = result.relevant_matches
+        sources = self._source_dicts(matches)
+        context = [{"question": m.question, "answer": m.answer} for m in matches]
+        
+        try:
+            text = self.llm.generate(q, context)
+        except OllamaError as exc:
+            log.warning("Ollama failed (%s): %s", type(exc).__name__, exc.detail)
+            best = matches[0]
+            return done(BotResponse(
+                text=best.answer, mode=MODE_DATASET, sources=self._source_dicts([best]),
+                error=exc.user_message, used_llm=False, top_score=result.top_score,
+            ))
+
+        # If the model itself says it cannot answer, show the standard fallback with no sources.
+        if text.strip().startswith(FALLBACK_MESSAGE[:40]):
+            return done(BotResponse(FALLBACK_MESSAGE, MODE_OUT_OF_SCOPE, used_llm=True, top_score=result.top_score))
+
+        return done(BotResponse(text=text, mode=MODE_LLM, sources=sources, used_llm=True, top_score=result.top_score))
