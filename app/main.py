@@ -189,3 +189,20 @@ def render_welcome(bot_av: str) -> None:
     for i, (icon, q) in enumerate(SUGGESTIONS):
         if cols[i % 2].button(f"{icon}  {q}", key=f"sug_{i}", use_container_width=True):
             ask(q)
+
+# ------------------------------------------------------------------------------ main
+def main() -> None:
+    inject_css()
+    s = Settings.from_env()
+    st.session_state.setdefault("messages", [])
+    st.session_state.setdefault("pending", None)
+
+    try:
+        bot = get_bot()
+    except Exception as exc:  # dataset missing/invalid -> clear error instead of a crash
+        st.error(f"SilatGuide could not start: {exc}")
+        st.stop()
+
+    bot_av = img_src("chatbot_avatar.png", "image/png")
+    gif = img_src("loading_silat.gif", "image/gif")
+    render_sidebar(bot_av, s)
