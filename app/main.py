@@ -220,3 +220,22 @@ def main() -> None:
 
     st.markdown("<div class='sg-chat'>" + "".join(message_html(m, bot_av) for m in st.session_state.messages) + "</div>",
                 unsafe_allow_html=True)
+
+   if question:
+        slot = st.empty()
+        slot.markdown(loading_html(bot_av, gif), unsafe_allow_html=True)
+        try:
+            resp: BotResponse = bot.answer(question)
+        except Exception:  # last-resort guard so the UI never crashes
+            resp = BotResponse(text="Sorry, something went wrong while preparing your answer. Please try again.",
+                               mode=MODE_OUT_OF_SCOPE)
+        slot.empty()
+        st.session_state.messages.append({
+            "role": "assistant", "content": resp.text, "mode": resp.mode, "sources": resp.sources,
+        })
+        st.rerun()
+
+    components.html(PAGE_SCRIPT % len(st.session_state.messages), height=0)
+
+
+main()
