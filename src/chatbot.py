@@ -95,3 +95,19 @@ class SilatGuideBot:
         matches = result.relevant_matches
         sources = self._source_dicts(matches)
         context = [{"question": m.question, "answer": m.answer} for m in matches]
+        
+        try:
+            text = self.llm.generate(q, context)
+        except OllamaError as exc:
+            log.warning("Ollama failed (%s): %s", type(exc).__name__, exc.detail)
+            best = matches[0]
+            return done(BotResponse(
+                text=best.answer, mode=MODE_DATASET, sources=self._source_dicts([best]),
+                error=exc.user_message, used_llm=False, top_score=result.top_score,
+            ))
+
+        # If the model itself says it cannot answer, show the standard fallback with no sources.
+        if text.strip().startswith(FALLBACK_MESSAGE[:40]):
+            return done(BotResponse(FALLBACK_MESSAGE, MODE_OUT_OF_SCOPE, used_llm=True, top_score=result.top_score))
+
+        return done(BotResponse(text=text, mode=MODE_LLM, sources=sources, used_llm=True, top_score=result.top_score))
