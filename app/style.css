@@ -82,3 +82,14 @@ header[data-testid="stHeader"]{background:transparent;}
 
 .sg-section{font-family:var(--serif);font-size:1.05rem;color:var(--forest);margin:.4rem 0 .6rem;display:flex;align-items:center;gap:.5rem;}
 .sg-section::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--gold),transparent);}
+
+/* ---------- suggested question cards (main-area buttons) ---------- */
+section.main .stButton>button, [data-testid="stMain"] .stButton>button{
+  width:100%;min-height:64px;text-align:left;justify-content:flex-start;white-space:normal;
+  background:var(--paper);border:1px solid var(--line);border-radius:16px;color:var(--ink);
+  font-weight:500;font-size:.92rem;padding:.8rem 1rem;box-shadow:var(--shadow-s);transition:all .2s ease;
+}
+[data-testid="stMain"] .stButton>button:hover{
+  border-color:var(--gold);transform:translateY(-3px);box-shadow:0 12px 24px rgba(156,122,44,.18);
+  background:linear-gradient(180deg,#FFFDF7,#FBF1D6);color:var(--forest);
+}
