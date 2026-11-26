@@ -49,3 +49,47 @@ header[data-testid="stHeader"]{background:transparent;}
   border:1px solid rgba(230,200,121,.35);border-radius:10px;color:#F4EBD2;font-size:.82rem;padding:.35rem .7rem;transition:.18s;
 }
 [data-testid="stSidebar"] .stButton>button:hover{background:rgba(230,200,121,.2);border-color:var(--gold-2);transform:translateX(3px);}
+
+/* ---------- hero ---------- */
+.sg-hero{
+  position:relative;overflow:hidden;border-radius:26px;padding:1.6rem 1.8rem;margin-bottom:1.3rem;
+  background:linear-gradient(135deg,var(--forest) 0%,var(--forest-3) 60%,#1B6A55 100%);
+  box-shadow:var(--shadow);display:flex;align-items:center;gap:1.6rem;color:#FBF1D2;
+}
+
+.sg-hero::before{ /* songket diamond lattice */
+  content:"";position:absolute;inset:0;opacity:.14;pointer-events:none;
+  background-image:linear-gradient(45deg,var(--gold-2) 25%,transparent 25%,transparent 75%,var(--gold-2) 75%),
+                   linear-gradient(45deg,var(--gold-2) 25%,transparent 25%,transparent 75%,var(--gold-2) 75%);
+  background-size:34px 34px;background-position:0 0,17px 17px;
+  -webkit-mask-image:linear-gradient(90deg,transparent 35%,#000);mask-image:linear-gradient(90deg,transparent 35%,#000);
+}
+.sg-hero::after{ /* pucuk rebung border */
+  content:"";position:absolute;left:0;right:0;bottom:0;height:11px;
+  background:linear-gradient(135deg,var(--gold) 25%,transparent 25%) -11px 0,linear-gradient(225deg,var(--gold) 25%,transparent 25%) -11px 0;
+  background-size:22px 22px;opacity:.9;
+}
+
+.sg-hero img{width:150px;height:150px;border-radius:50%;flex:none;box-shadow:0 0 0 3px var(--gold),0 14px 30px rgba(0,0,0,.35);position:relative;z-index:1;
+  animation:float 4.5s ease-in-out infinite;}
+.sg-hero .txt{position:relative;z-index:1;}
+.sg-eyebrow{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-2);font-weight:600;}
+.sg-hero h2{font-family:var(--serif);font-size:2.15rem;line-height:1.1;margin:.25rem 0 .5rem;color:#FFF6DA;}
+.sg-hero p{margin:0;font-size:.97rem;line-height:1.55;opacity:.93;max-width:34rem;}
+.sg-pills{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.9rem;}
+.sg-pill{font-size:.72rem;padding:.22rem .65rem;border-radius:99px;border:1px solid rgba(230,200,121,.6);background:rgba(255,255,255,.08);}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+
+.sg-section{font-family:var(--serif);font-size:1.05rem;color:var(--forest);margin:.4rem 0 .6rem;display:flex;align-items:center;gap:.5rem;}
+.sg-section::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--gold),transparent);}
+
+/* ---------- suggested question cards (main-area buttons) ---------- */
+section.main .stButton>button, [data-testid="stMain"] .stButton>button{
+  width:100%;min-height:64px;text-align:left;justify-content:flex-start;white-space:normal;
+  background:var(--paper);border:1px solid var(--line);border-radius:16px;color:var(--ink);
+  font-weight:500;font-size:.92rem;padding:.8rem 1rem;box-shadow:var(--shadow-s);transition:all .2s ease;
+}
+[data-testid="stMain"] .stButton>button:hover{
+  border-color:var(--gold);transform:translateY(-3px);box-shadow:0 12px 24px rgba(156,122,44,.18);
+  background:linear-gradient(180deg,#FFFDF7,#FBF1D6);color:var(--forest);
+}
