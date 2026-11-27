@@ -105,3 +105,118 @@ def keris(d, base, angle_deg, s, length=27):
         right.append((cx - nx * width / 2, cy - ny * width / 2))
     poly(d, left + right[::-1], STEEL, w=1.1)
 
+# ----------------------------------------------------------------- the character
+def chibi(d, cx, g, s, pal, dirn=1, lean=0.0, hop=0.0, front_hand=(26, -6), back_hand=(-2, -16),
+          face="smile", blink=False, keris_angle=None, legs=True, sheath=False, brow="soft"):
+    """Draw one chibi Silat friend.
+
+    cx, g   : centre x and ground y (feet) in output pixels
+    s       : size multiplier (1.0 ~ 140 px tall)
+    dirn    : +1 faces right, -1 faces left
+    face    : 'smile' | 'grin' | 'surprise' | 'happy'
+    """
+    g = g - hop
+    bx = cx + lean * 0.4 * s
+    hx = cx + lean * s
+    top = g - 52 * s
+    sh_y = top + 6 * s
+
+    # --- legs and feet
+    if legs:
+        for sx in (-1, 1):
+            lx = cx + sx * 9 * s
+            limb(d, (lx, g - 17 * s), (lx + sx * 1 * s, g - 6 * s), 12 * s, pal["pants"])
+            ell(d, lx + dirn * 2.5 * s, g - 3 * s, 8.5 * s, 4.6 * s, SKIN)
+
+    # --- back arm (behind body)
+    bs = (bx - dirn * 17 * s, sh_y)
+    bh = (bs[0] + dirn * back_hand[0] * s, bs[1] + back_hand[1] * s)
+    limb(d, bs, bh, 10 * s, pal["baju_d"])
+    ell(d, bh[0], bh[1], 5.6 * s, 5.6 * s, SKIN)
+
+    # --- body (baju Melayu) + samping (songket sarong) + gold trim
+    rrect(d, bx - 21 * s, top, bx + 21 * s, g - 17 * s, 11 * s, pal["baju"])
+    rrect(d, bx - 23 * s, g - 36 * s, bx + 23 * s, g - 19 * s, 5 * s, pal["samping"])
+    for i in range(-2, 3):
+        x = bx + i * 9.2 * s
+        poly(d, [(x, g - 34 * s), (x + 4 * s, g - 27.5 * s), (x, g - 21 * s), (x - 4 * s, g - 27.5 * s)],
+             pal["samping2"], outline=None)
+    line(d, [(bx - 22.5 * s, g - 36 * s), (bx + 22.5 * s, g - 36 * s)], GOLD_D, 1.4 * s)
+    rrect(d, bx - 8 * s, top - 2 * s, bx + 8 * s, top + 9 * s, 3 * s, pal["baju_d"])   # cekak musang collar
+    for k in range(2):
+        ell(d, bx, top + 14 * s + k * 7 * s, 1.7 * s, 1.7 * s, GOLD, outline=None)
+
+    if sheath:  # keris tucked in the samping (avatar)
+        a0 = (bx + 14 * s, g - 38 * s)
+        a1 = (bx - 12 * s, g - 21 * s)
+        limb(d, a0, a1, 6.5 * s, (122, 70, 38), w=1.2)
+        ell(d, a0[0] + 1.5 * s, a0[1] - 1.2 * s, 4.2 * s, 4.2 * s, GOLD, w=1.1)
+        limb(d, (a0[0] + 2.5 * s, a0[1] - 2 * s), (a0[0] + 6.5 * s, a0[1] - 5 * s), 4.6 * s, (120, 62, 34), w=1.0)
+
+    # --- front arm (+ keris)
+    fs = (bx + dirn * 17 * s, sh_y)
+    fh = (fs[0] + dirn * front_hand[0] * s, fs[1] + front_hand[1] * s)
+    limb(d, fs, fh, 10 * s, pal["baju"])
+    if keris_angle is not None:
+        ang = keris_angle if dirn == 1 else 180 - keris_angle
+        keris(d, fh, ang, s)
+    ell(d, fh[0], fh[1], 6 * s, 6 * s, SKIN)
+
+    # --- head
+    hc = g - 74 * s
+    ell(d, hx - 28 * s, hc + 3 * s, 6 * s, 10 * s, HAIR)
+    ell(d, hx + 28 * s, hc + 3 * s, 6 * s, 10 * s, HAIR)
+    ell(d, hx, hc, 30 * s, 29 * s, SKIN)
+
+    fx = hx + dirn * 2.5 * s
+    ey = hc + 4 * s
+    for sx in (-1, 1):
+        ex = fx + sx * 11 * s
+        ell(d, ex + sx * 7.5 * s, hc + 14 * s, 6.5 * s, 3.8 * s, BLUSH, outline=None)  # blush
+        if blink or face == "happy":
+            d.arc([_px(ex - 5.5 * s), _px(ey - 4 * s), _px(ex + 5.5 * s), _px(ey + 6 * s)],
+                  200, 340, fill=OUT, width=max(1, int(2.2 * s * SS)))
+        else:
+            big = face == "surprise"
+            ell(d, ex, ey, (6.2 if big else 5.2) * s, (8.2 if big else 7.2) * s, (30, 22, 22), outline=None)
+            ell(d, ex + dirn * 1.2 * s, ey - 2.6 * s, 2.1 * s, 2.1 * s, (255, 255, 255), outline=None)
+            ell(d, ex - dirn * 1.2 * s, ey + 2.2 * s, 1.1 * s, 1.1 * s, (255, 255, 255), outline=None)
+        by = hc - 7 * s
+        if face == "grin":      # determined, playful brows
+            line(d, [(ex - sx * 4 * s, by + 1.6 * s * (1 if sx * dirn > 0 else -1) * 0), (ex + sx * 4 * s, by - 2.2 * s)], OUT, 1.8 * s)
+        elif face == "surprise":
+            line(d, [(ex - 4 * s, by - 3 * s), (ex + 4 * s, by - 3 * s)], OUT, 1.6 * s)
+        elif brow == "soft":
+            line(d, [(ex - 4 * s, by), (ex + 4 * s, by - 0.6 * s)], (110, 78, 60), 1.4 * s)
+
+    my = hc + 15.5 * s
+    if face == "grin":
+        d.pieslice([_px(fx - 7.5 * s), _px(my - 6 * s), _px(fx + 7.5 * s), _px(my + 9 * s)], 0, 180,
+                   fill=MOUTH, outline=OUT, width=max(1, int(1.4 * SS)))
+        ell(d, fx, my + 4.2 * s, 3.4 * s, 1.9 * s, (255, 150, 150), outline=None)
+    elif face == "surprise":
+        ell(d, fx, my + 2 * s, 3.3 * s, 4.2 * s, MOUTH, w=1.2)
+    elif face == "happy":
+        d.pieslice([_px(fx - 7.5 * s), _px(my - 6 * s), _px(fx + 7.5 * s), _px(my + 9 * s)], 0, 180,
+                   fill=MOUTH, outline=OUT, width=max(1, int(1.4 * SS)))
+        ell(d, fx, my + 4.2 * s, 3.8 * s, 2 * s, (255, 150, 150), outline=None)
+    else:
+        d.arc([_px(fx - 6 * s), _px(my - 5 * s), _px(fx + 6 * s), _px(my + 5 * s)], 25, 155,
+              fill=OUT, width=max(1, int(2 * s * SS)))
+
+    # --- tengkolok / tanjak (peak sweeps to the back)
+    m = -dirn
+    pts = [(-31, -3), (-30, -17), (-22, -28), (-6, -34), (2, -36), (10, -62), (18, -38), (26, -30),
+           (31, -16), (31, -3), (20, -8), (0, -11), (-20, -8)]
+    poly(d, [(hx + m * x * s, hc + y * s) for x, y in pts], pal["tanjak"])
+    # folded-cloth creases
+    line(d, [(hx + m * -20 * s, hc - 14 * s), (hx + m * -2 * s, hc - 27 * s), (hx + m * 8 * s, hc - 52 * s)], pal["tanjak_d"], 1.6 * s)
+    line(d, [(hx + m * 4 * s, hc - 16 * s), (hx + m * 18 * s, hc - 29 * s)], pal["tanjak_d"], 1.4 * s)
+    # gold songket band across the forehead
+    band = [(hx + m * x * s, hc + y * s) for x, y in [(-31, -3), (-20, -8), (0, -11), (20, -8), (31, -3)]]
+    line(d, band, OUT, 6.6 * s)
+    line(d, band, pal["band"], 4.4 * s)
+    # little brooch
+    poly(d, [(hx, hc - 22 * s), (hx + 4.2 * s, hc - 17 * s), (hx, hc - 12 * s), (hx - 4.2 * s, hc - 17 * s)], GOLD, w=1.1)
+    ell(d, hx, hc - 17 * s, 1.5 * s, 1.5 * s, (200, 40, 60), outline=None)
+
