@@ -23,6 +23,7 @@ import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+
 from src import chatbot as cb  # noqa: E402
 from src.chatbot import SilatGuideBot  # noqa: E402
 from src.llm import (  # noqa: E402
@@ -40,6 +41,8 @@ EXPECTED_CATEGORIES = {
     "Ethics and Discipline": 4, "Training Safety": 4, "Traditional Clothing and Equipment": 3,
     "General Beginner Questions": 3,
 }
+
+
 class FakeLLM:
     """Stands in for Ollama so retrieval/routing tests are fast and deterministic."""
 
@@ -59,6 +62,9 @@ def retriever():
 @pytest.fixture()
 def bot(retriever):
     return SilatGuideBot(retriever=retriever, llm=FakeLLM())
+
+
+# ------------------------------------------------------------------ dataset integrity
 def test_dataset_has_exactly_36_unique_rows():
     df, report = load_dataset(DATA)
     assert len(df) == 36
@@ -77,129 +83,84 @@ def test_every_entry_has_a_source_and_reasonable_length():
     assert (df["Source"].str.len() > 10).all()
     assert df["Answer"].str.split().str.len().between(25, 90).all()
 
+
 def test_validator_detects_bad_data(tmp_path):
     import pandas as pd
-
-    df = pd.DataFrame({
-        "Question": ["A?", "a ?", ""],
-        "Answer": ["x", "y", "z"],
-        "Source": ["s"] * 3,
-        "Category": ["c"] * 3,
-    })
-
+    df = pd.DataFrame({"Question": ["A?", "a ?", ""], "Answer": ["x", "y", "z"], "Source": ["s"] * 3, "Category": ["c"] * 3})
     rep = validate_dataset(df)
-
-    assert rep["duplicate_questions"] == [(0, 1)]
-    assert rep["empty_questions"] == [2]
-
+    assert rep["duplicate_questions"] == [(0, 1)] and rep["empty_questions"] == [2]
     bad = tmp_path / "bad.csv"
     bad.write_text("Question,Answer\nq,a\n", encoding="utf-8")
-
     with pytest.raises(DatasetError):
         load_dataset(bad)
-
     with pytest.raises(DatasetError):
         load_dataset(tmp_path / "missing.csv")
-    
-    @pytest.mark.parametrize(
-    "case",
-    [c for c in CASES if c["expected_behavior"] == "answer"],
-    ids=lambda c: c["id"],
-)
+
+
+# ----------------------------------------------------------- data-driven retrieval tests
+@pytest.mark.parametrize("case", [c for c in CASES if c["expected_behavior"] == "answer"], ids=lambda c: c["id"])
 def test_relevant_questions_retrieve_right_entry(retriever, case):
     res = retriever.search(case["question"])
-
-    assert res.is_relevant, (
-        f"rejected (score={res.top_score:.3f}, "
-        f"coverage={res.coverage:.2f})"
-    )
-
+    assert res.is_relevant, f"rejected (score={res.top_score:.3f}, coverage={res.coverage:.2f})"
     needle = case["expected_top_question_contains"].lower()
+    assert any(needle in m.question.lower() for m in res.matches[:3]), [m.question for m in res.matches]
 
-    assert any(
-        needle in m.question.lower()
-        for m in res.matches[:3]
-    ), [m.question for m in res.matches]
-    @pytest.mark.parametrize(
-    "case",
-    [c for c in CASES if c["expected_behavior"] == "fallback"],
-    ids=lambda c: c["id"],
-)
+
+@pytest.mark.parametrize("case", [c for c in CASES if c["expected_behavior"] == "fallback"], ids=lambda c: c["id"])
 def test_offtopic_and_unanswerable_are_rejected(retriever, case):
     res = retriever.search(case["question"])
-
-    assert not res.is_relevant, (
-        f"wrongly accepted (score={res.top_score:.3f}, "
-        f"coverage={res.coverage:.2f})"
-    )
-
+    assert not res.is_relevant, f"wrongly accepted (score={res.top_score:.3f}, coverage={res.coverage:.2f})"
     assert res.relevant_matches == []
+
+
 # ------------------------------------------------------------------- chatbot behaviour
-@pytest.mark.parametrize(
-    "case",
-    [c for c in CASES if c["expected_behavior"] == "answer"][:6],
-    ids=lambda c: c["id"],
-)
+@pytest.mark.parametrize("case", [c for c in CASES if c["expected_behavior"] == "answer"][:6], ids=lambda c: c["id"])
 def test_relevant_question_reaches_llm_with_context_and_sources(bot, case):
     r = bot.answer(case["question"])
-
-    assert r.mode == cb.MODE_LLM
-    assert r.used_llm
-    assert r.text == "FAKE-LLM-ANSWER"
-
-    assert r.sources
-    assert all(s["source"] for s in r.sources)
-
+    assert r.mode == cb.MODE_LLM and r.used_llm and r.text == "FAKE-LLM-ANSWER"
+    assert r.sources and all(s["source"] for s in r.sources)
     question, context = bot.llm.calls[-1]
-
     assert 1 <= len(context) <= 3
-    
+
+
 @pytest.mark.parametrize("case", [c for c in CASES if c["expected_behavior"] == "fallback"], ids=lambda c: c["id"])
 def test_fallback_message_and_llm_not_called(bot, case):
     r = bot.answer(case["question"])
     assert r.mode == cb.MODE_OUT_OF_SCOPE and r.text == FALLBACK_MESSAGE
     assert bot.llm.calls == [], "LLM must not see unrelated questions"
 
-@pytest.mark.parametrize(
-    "case",
-    [c for c in CASES if c["expected_behavior"] == "refused"],
-    ids=lambda c: c["id"],
-)
+
+@pytest.mark.parametrize("case", [c for c in CASES if c["expected_behavior"] == "refused"], ids=lambda c: c["id"])
 def test_unsafe_requests_are_refused_without_llm(bot, case):
     r = bot.answer(case["question"])
-
-    assert r.mode == cb.MODE_REFUSED
-    assert "can't help" in r.text.lower()
+    assert r.mode == cb.MODE_REFUSED and "can't help" in r.text.lower()
     assert bot.llm.calls == []
 
-@pytest.mark.parametrize(
-    "case",
-    [c for c in CASES if c["expected_behavior"] == "injection"],
-    ids=lambda c: c["id"],
-)
+
+@pytest.mark.parametrize("case", [c for c in CASES if c["expected_behavior"] == "injection"], ids=lambda c: c["id"])
 def test_prompt_injection_is_refused_without_llm(bot, case):
     r = bot.answer(case["question"])
-
     assert r.mode == cb.MODE_INJECTION
     assert "system prompt" not in r.text.lower() or "can't" in r.text.lower()
     assert bot.llm.calls == []
+
+
 def test_small_talk_and_empty_input(bot):
     assert bot.answer("").mode == cb.MODE_SMALLTALK
     assert bot.answer("Hello!").mode == cb.MODE_SMALLTALK
     assert bot.answer("thank you").mode == cb.MODE_SMALLTALK
     assert bot.llm.calls == []
+
+
 def test_model_saying_it_does_not_know_becomes_standard_fallback(retriever):
     class Refusing(FakeLLM):
         def generate(self, q, c):
             return FALLBACK_MESSAGE
 
-    r = SilatGuideBot(
-        retriever=retriever,
-        llm=Refusing(),
-    ).answer("What is Silat?")
+    r = SilatGuideBot(retriever=retriever, llm=Refusing()).answer("What is Silat?")
+    assert r.mode == cb.MODE_OUT_OF_SCOPE and r.sources == []
 
-    assert r.mode == cb.MODE_OUT_OF_SCOPE
-    assert r.sources == []
+
 # ------------------------------------------------------------- Ollama failure handling
 @pytest.mark.parametrize("exc, expected_text", [
     (OllamaUnavailable("x"), "not running"),
