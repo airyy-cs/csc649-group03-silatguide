@@ -134,3 +134,21 @@ def test_offtopic_and_unanswerable_are_rejected(retriever, case):
     )
 
     assert res.relevant_matches == []
+@pytest.mark.parametrize(
+    "case",
+    [c for c in CASES if c["expected_behavior"] == "answer"][:6],
+    ids=lambda c: c["id"],
+)
+def test_relevant_question_reaches_llm_with_context_and_sources(bot, case):
+    r = bot.answer(case["question"])
+
+    assert r.mode == cb.MODE_LLM
+    assert r.used_llm
+    assert r.text == "FAKE-LLM-ANSWER"
+
+    assert r.sources
+    assert all(s["source"] for s in r.sources)
+
+    question, context = bot.llm.calls[-1]
+
+    assert 1 <= len(context) <= 3
