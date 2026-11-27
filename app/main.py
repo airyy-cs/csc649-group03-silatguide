@@ -207,7 +207,7 @@ def main() -> None:
     gif = img_src("loading_silat.gif", "image/gif")
     render_sidebar(bot_av, s)
 
-       typed = st.chat_input("Ask me anything about Silat...")
+    typed = st.chat_input("Ask me anything about Silat...")
     question = typed or st.session_state.pending
     st.session_state.pending = None
 
@@ -221,7 +221,7 @@ def main() -> None:
     st.markdown("<div class='sg-chat'>" + "".join(message_html(m, bot_av) for m in st.session_state.messages) + "</div>",
                 unsafe_allow_html=True)
 
-   if question:
+    if question:
         slot = st.empty()
         slot.markdown(loading_html(bot_av, gif), unsafe_allow_html=True)
         try:
