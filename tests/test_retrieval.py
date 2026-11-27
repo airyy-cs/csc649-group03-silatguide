@@ -120,3 +120,17 @@ def test_relevant_questions_retrieve_right_entry(retriever, case):
         needle in m.question.lower()
         for m in res.matches[:3]
     ), [m.question for m in res.matches]
+    @pytest.mark.parametrize(
+    "case",
+    [c for c in CASES if c["expected_behavior"] == "fallback"],
+    ids=lambda c: c["id"],
+)
+def test_offtopic_and_unanswerable_are_rejected(retriever, case):
+    res = retriever.search(case["question"])
+
+    assert not res.is_relevant, (
+        f"wrongly accepted (score={res.top_score:.3f}, "
+        f"coverage={res.coverage:.2f})"
+    )
+
+    assert res.relevant_matches == []
