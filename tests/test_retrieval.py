@@ -100,3 +100,23 @@ def test_validator_detects_bad_data(tmp_path):
 
     with pytest.raises(DatasetError):
         load_dataset(tmp_path / "missing.csv")
+    
+    @pytest.mark.parametrize(
+    "case",
+    [c for c in CASES if c["expected_behavior"] == "answer"],
+    ids=lambda c: c["id"],
+)
+def test_relevant_questions_retrieve_right_entry(retriever, case):
+    res = retriever.search(case["question"])
+
+    assert res.is_relevant, (
+        f"rejected (score={res.top_score:.3f}, "
+        f"coverage={res.coverage:.2f})"
+    )
+
+    needle = case["expected_top_question_contains"].lower()
+
+    assert any(
+        needle in m.question.lower()
+        for m in res.matches[:3]
+    ), [m.question for m in res.matches]
