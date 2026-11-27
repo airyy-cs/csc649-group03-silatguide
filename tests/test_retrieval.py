@@ -76,3 +76,27 @@ def test_every_entry_has_a_source_and_reasonable_length():
     df, _ = load_dataset(DATA)
     assert (df["Source"].str.len() > 10).all()
     assert df["Answer"].str.split().str.len().between(25, 90).all()
+
+def test_validator_detects_bad_data(tmp_path):
+    import pandas as pd
+
+    df = pd.DataFrame({
+        "Question": ["A?", "a ?", ""],
+        "Answer": ["x", "y", "z"],
+        "Source": ["s"] * 3,
+        "Category": ["c"] * 3,
+    })
+
+    rep = validate_dataset(df)
+
+    assert rep["duplicate_questions"] == [(0, 1)]
+    assert rep["empty_questions"] == [2]
+
+    bad = tmp_path / "bad.csv"
+    bad.write_text("Question,Answer\nq,a\n", encoding="utf-8")
+
+    with pytest.raises(DatasetError):
+        load_dataset(bad)
+
+    with pytest.raises(DatasetError):
+        load_dataset(tmp_path / "missing.csv")
