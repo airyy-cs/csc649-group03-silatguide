@@ -177,3 +177,22 @@ def test_prompt_injection_is_refused_without_llm(bot, case):
     assert r.mode == cb.MODE_INJECTION
     assert "system prompt" not in r.text.lower() or "can't" in r.text.lower()
     assert bot.llm.calls == []
+def test_small_talk_and_empty_input(bot):
+    assert bot.answer("").mode == cb.MODE_SMALLTALK
+    assert bot.answer("Hello!").mode == cb.MODE_SMALLTALK
+    assert bot.answer("thank you").mode == cb.MODE_SMALLTALK
+    assert bot.llm.calls == []
+
+
+def test_model_saying_it_does_not_know_becomes_standard_fallback(retriever):
+    class Refusing(FakeLLM):
+        def generate(self, q, c):
+            return FALLBACK_MESSAGE
+
+    r = SilatGuideBot(
+        retriever=retriever,
+        llm=Refusing(),
+    ).answer("What is Silat?")
+
+    assert r.mode == cb.MODE_OUT_OF_SCOPE
+    assert r.sources == []
