@@ -93,3 +93,13 @@ section.main .stButton>button, [data-testid="stMain"] .stButton>button{
   border-color:var(--gold);transform:translateY(-3px);box-shadow:0 12px 24px rgba(156,122,44,.18);
   background:linear-gradient(180deg,#FFFDF7,#FBF1D6);color:var(--forest);
 }
+
+/* ---------- chat ---------- */
+.sg-chat{display:flex;flex-direction:column;gap:1.15rem;}
+.sg-msg{display:flex;gap:.75rem;align-items:flex-end;animation:rise .35s ease both;scroll-margin-bottom:150px;}
+.sg-msg.user{justify-content:flex-end;}                /* user: right-aligned, no avatar */
+.sg-av{width:42px;height:42px;border-radius:50%;flex:none;box-shadow:0 0 0 2px var(--gold),var(--shadow-s);object-fit:cover;}
+.sg-bubble{max-width:78%;padding:.9rem 1.15rem;border-radius:20px;font-size:.96rem;line-height:1.65;box-shadow:var(--shadow-s);overflow-wrap:anywhere;}
+.sg-msg.bot .sg-bubble{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--gold);border-bottom-left-radius:6px;}
+.sg-msg.user .sg-bubble{background:linear-gradient(135deg,var(--forest),var(--forest-3));color:#FFF6DA;border-bottom-right-radius:6px;max-width:72%;}
+.sg-note{font-size:.8rem;color:#8A5200;background:#FFF6E6;border:1px solid #F4D9A8;border-radius:10px;padding:.4rem .65rem;margin-top:.6rem;}
