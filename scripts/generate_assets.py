@@ -350,3 +350,9 @@ def make_loading_gif(path: Path, w: int = 420, h: int = 250, n_frames: int = 24,
     q = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in frames]
     path.parent.mkdir(parents=True, exist_ok=True)
     q[0].save(path, save_all=True, append_images=q[1:], duration=ms, loop=0, disposal=2, optimize=False)
+
+if __name__ == "__main__":
+    make_avatar(OUT_DIR / "chatbot_avatar.png")
+    make_loading_gif(OUT_DIR / "loading_silat.gif")
+    print("Wrote", OUT_DIR / "chatbot_avatar.png")
+    print("Wrote", OUT_DIR / "loading_silat.gif")
