@@ -152,3 +152,28 @@ def test_relevant_question_reaches_llm_with_context_and_sources(bot, case):
     question, context = bot.llm.calls[-1]
 
     assert 1 <= len(context) <= 3
+
+@pytest.mark.parametrize(
+    "case",
+    [c for c in CASES if c["expected_behavior"] == "refused"],
+    ids=lambda c: c["id"],
+)
+def test_unsafe_requests_are_refused_without_llm(bot, case):
+    r = bot.answer(case["question"])
+
+    assert r.mode == cb.MODE_REFUSED
+    assert "can't help" in r.text.lower()
+    assert bot.llm.calls == []
+
+
+@pytest.mark.parametrize(
+    "case",
+    [c for c in CASES if c["expected_behavior"] == "injection"],
+    ids=lambda c: c["id"],
+)
+def test_prompt_injection_is_refused_without_llm(bot, case):
+    r = bot.answer(case["question"])
+
+    assert r.mode == cb.MODE_INJECTION
+    assert "system prompt" not in r.text.lower() or "can't" in r.text.lower()
+    assert bot.llm.calls == []
