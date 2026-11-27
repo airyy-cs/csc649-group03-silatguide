@@ -59,3 +59,20 @@ def retriever():
 @pytest.fixture()
 def bot(retriever):
     return SilatGuideBot(retriever=retriever, llm=FakeLLM())
+def test_dataset_has_exactly_36_unique_rows():
+    df, report = load_dataset(DATA)
+    assert len(df) == 36
+    assert report["empty_questions"] == [] and report["empty_answers"] == []
+    assert report["duplicate_questions"] == []
+
+
+def test_dataset_columns_and_categories():
+    df, report = load_dataset(DATA)
+    assert list(df.columns) == ["Question", "Answer", "Source", "Category"]
+    assert report["categories"] == EXPECTED_CATEGORIES
+
+
+def test_every_entry_has_a_source_and_reasonable_length():
+    df, _ = load_dataset(DATA)
+    assert (df["Source"].str.len() > 10).all()
+    assert df["Answer"].str.split().str.len().between(25, 90).all()
