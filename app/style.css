@@ -142,3 +142,18 @@ section.main .stButton>button, [data-testid="stMain"] .stButton>button{
 [data-testid="stElementContainer"]:has(iframe[height="0"]){position:absolute;height:0;margin:0;overflow:hidden;}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+/* ---------- responsive ---------- */
+@media (max-width:720px){
+  .block-container{padding-left:1rem;padding-right:1rem;padding-bottom:9rem;}
+  .sg-hero{flex-direction:column;text-align:center;padding:1.3rem;}
+  .sg-hero img{width:120px;height:120px;}
+  .sg-hero h2{font-size:1.7rem;}
+  .sg-bubble{max-width:88%;}
+  .sg-msg.user .sg-bubble{max-width:84%;}
+  .sg-av{width:36px;height:36px;}
+  .sg-loading{flex-direction:column;text-align:center;padding:.8rem;max-width:92%;}
+}
+
+.sg-h4{margin:1.1rem 0 .5rem;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2)!important;font-weight:600;}
+[data-testid="stAppDeployButton"]{display:none;}
