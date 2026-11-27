@@ -40,3 +40,83 @@ EXPECTED_CATEGORIES = {
     "Ethics and Discipline": 4, "Training Safety": 4, "Traditional Clothing and Equipment": 3,
     "General Beginner Questions": 3,
 }
+class FakeLLM:
+    """Stands in for Ollama so retrieval/routing tests are fast and deterministic."""
+
+    def __init__(self):
+        self.calls = []
+
+    def generate(self, question, context):
+        self.calls.append((question, context))
+        return "FAKE-LLM-ANSWER"
+
+
+@pytest.fixture(scope="module")
+def retriever():
+    return SilatRetriever(DATA, threshold=0.25, top_k=3)
+
+
+@pytest.fixture()
+def bot(retriever):
+    return SilatGuideBot(retriever=retriever, llm=FakeLLM())
+def test_dataset_has_exactly_36_unique_rows():
+    df, report = load_dataset(DATA)
+    assert len(df) == 36
+    assert report["empty_questions"] == [] and report["empty_answers"] == []
+    assert report["duplicate_questions"] == []
+
+
+def test_dataset_columns_and_categories():
+    df, report = load_dataset(DATA)
+    assert list(df.columns) == ["Question", "Answer", "Source", "Category"]
+    assert report["categories"] == EXPECTED_CATEGORIES
+
+
+def test_every_entry_has_a_source_and_reasonable_length():
+    df, _ = load_dataset(DATA)
+    assert (df["Source"].str.len() > 10).all()
+    assert df["Answer"].str.split().str.len().between(25, 90).all()
+
+def test_validator_detects_bad_data(tmp_path):
+    import pandas as pd
+
+    df = pd.DataFrame({
+        "Question": ["A?", "a ?", ""],
+        "Answer": ["x", "y", "z"],
+        "Source": ["s"] * 3,
+        "Category": ["c"] * 3,
+    })
+
+    rep = validate_dataset(df)
+
+    assert rep["duplicate_questions"] == [(0, 1)]
+    assert rep["empty_questions"] == [2]
+
+    bad = tmp_path / "bad.csv"
+    bad.write_text("Question,Answer\nq,a\n", encoding="utf-8")
+
+    with pytest.raises(DatasetError):
+        load_dataset(bad)
+
+    with pytest.raises(DatasetError):
+        load_dataset(tmp_path / "missing.csv")
+    
+    @pytest.mark.parametrize(
+    "case",
+    [c for c in CASES if c["expected_behavior"] == "answer"],
+    ids=lambda c: c["id"],
+)
+def test_relevant_questions_retrieve_right_entry(retriever, case):
+    res = retriever.search(case["question"])
+
+    assert res.is_relevant, (
+        f"rejected (score={res.top_score:.3f}, "
+        f"coverage={res.coverage:.2f})"
+    )
+
+    needle = case["expected_top_question_contains"].lower()
+
+    assert any(
+        needle in m.question.lower()
+        for m in res.matches[:3]
+    ), [m.question for m in res.matches]
