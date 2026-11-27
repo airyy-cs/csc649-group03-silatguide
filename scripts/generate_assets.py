@@ -272,3 +272,81 @@ def make_avatar(path: Path, size: int = 512) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     out.save(path, optimize=True)
 
+
+# ------------------------------------------------------------- loading animation
+def _bump(t, c, w):
+    x = (t - c + 0.5) % 1.0 - 0.5
+    return 0.0 if abs(x) >= w / 2 else math.cos(math.pi * x / w) ** 2
+
+
+def make_loading_gif(path: Path, w: int = 420, h: int = 250, n_frames: int = 24, ms: int = 70) -> None:
+    bg_col = (255, 253, 247)
+    frames = []
+    g = 214
+    s = 1.02
+    for i in range(n_frames):
+        t = i / n_frames
+        im = Image.new("RGB", (w * SS, h * SS), bg_col)
+        d = ImageDraw.Draw(im)
+
+        # ground: soft shadow band + tiny songket triangles (pucuk rebung)
+        ell(d, w / 2, g + 4, 168, 11, (238, 228, 205), outline=None)
+        for k in range(-9, 10):
+            x = w / 2 + k * 18
+            poly(d, [(x - 6, g + 22), (x + 6, g + 22), (x, g + 12)], (226, 196, 120), outline=None)
+        line(d, [(w / 2 - 170, g + 22), (w / 2 + 170, g + 22)], (206, 170, 84), 1.4)
+
+        aA = _bump(t, 0.25, 0.42)   # Friend A "playfully lunges", B dodges
+        aB = _bump(t, 0.75, 0.42)   # then they swap roles
+        idle = abs(math.sin(2 * math.pi * 2 * t)) * 2.2
+
+        ax = 128 + 22 * aA - 12 * aB
+        bx = 292 - 22 * aB + 12 * aA
+
+        def face_for(att, dodge, blink_now):
+            if att > 0.35:
+                return "grin"
+            if dodge > 0.35:
+                return "surprise"
+            return "smile"
+
+        blinkA = i in (10, 11)
+        blinkB = i in (22, 23)
+
+        # shadows follow the fighters
+        ell(d, ax, g + 3, 30, 6, (225, 214, 190), outline=None)
+        ell(d, bx, g + 3, 30, 6, (225, 214, 190), outline=None)
+
+        # B first (so A's keris overlaps when lunging), then A
+        chibi(d, bx, g, s, PAL_BLACK, dirn=-1, lean=-(7 * aB) + 9 * aA, hop=16 * aA + idle * (1 - aA),
+              front_hand=(22 + 15 * aB - 8 * aA, -6 - 2 * aB - 4 * aA), back_hand=(-3, -15 + 4 * aB),
+              face=face_for(aB, aA, blinkB), blink=blinkB and aA < 0.2 and aB < 0.2,
+              keris_angle=-6 - 30 * aA)
+        chibi(d, ax, g, s, PAL_GREEN, dirn=1, lean=(7 * aA) - 9 * aB, hop=16 * aB + idle * (1 - aB),
+              front_hand=(22 + 15 * aA - 8 * aB, -6 - 2 * aA - 4 * aB), back_hand=(-3, -15 + 4 * aA),
+              face=face_for(aA, aB, blinkA), blink=blinkA and aA < 0.2 and aB < 0.2,
+              keris_angle=-6 - 30 * aB)
+
+        # swoosh arcs + sparkles on the near-miss (harmless and cute)
+        for att, ox, d_ in ((aA, ax, 1), (aB, bx, -1)):
+            if att > 0.45:
+                mx = (ax + bx) / 2
+                strength = (att - 0.45) / 0.55
+                r = 26 + 10 * strength
+                cyk = g - 82
+                bbox = [_px(mx - r), _px(cyk - r), _px(mx + r), _px(cyk + r)]
+                d.arc(bbox, 215 if d_ == 1 else 285, 245 if d_ == 1 else 325, fill=(236, 200, 96), width=int(3 * SS))
+                star(d, mx + 0 * d_, cyk - 18, 10 + 5 * strength, SPARK, 15 * i)
+                star(d, mx + 22 * d_, cyk + 14, 6 + 3 * strength, (255, 255, 255), 8 * i)
+                star(d, mx - 24 * d_, cyk - 4, 5, SPARK, -10 * i)
+
+        frames.append(im.resize((w, h), Image.LANCZOS))
+
+    # one shared palette -> no colour flicker between frames
+    sheet = Image.new("RGB", (w, h * min(n_frames, 6)))
+    for k in range(min(n_frames, 6)):
+        sheet.paste(frames[k * (n_frames // 6)], (0, k * h))
+    pal = sheet.quantize(colors=128, method=Image.Quantize.MEDIANCUT)
+    q = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in frames]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    q[0].save(path, save_all=True, append_images=q[1:], duration=ms, loop=0, disposal=2, optimize=False)
