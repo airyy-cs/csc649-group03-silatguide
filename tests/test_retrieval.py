@@ -120,3 +120,193 @@ def test_relevant_questions_retrieve_right_entry(retriever, case):
         needle in m.question.lower()
         for m in res.matches[:3]
     ), [m.question for m in res.matches]
+    @pytest.mark.parametrize(
+    "case",
+    [c for c in CASES if c["expected_behavior"] == "fallback"],
+    ids=lambda c: c["id"],
+)
+def test_offtopic_and_unanswerable_are_rejected(retriever, case):
+    res = retriever.search(case["question"])
+
+    assert not res.is_relevant, (
+        f"wrongly accepted (score={res.top_score:.3f}, "
+        f"coverage={res.coverage:.2f})"
+    )
+
+    assert res.relevant_matches == []
+# ------------------------------------------------------------------- chatbot behaviour
+@pytest.mark.parametrize(
+    "case",
+    [c for c in CASES if c["expected_behavior"] == "answer"][:6],
+    ids=lambda c: c["id"],
+)
+def test_relevant_question_reaches_llm_with_context_and_sources(bot, case):
+    r = bot.answer(case["question"])
+
+    assert r.mode == cb.MODE_LLM
+    assert r.used_llm
+    assert r.text == "FAKE-LLM-ANSWER"
+
+    assert r.sources
+    assert all(s["source"] for s in r.sources)
+
+    question, context = bot.llm.calls[-1]
+
+    assert 1 <= len(context) <= 3
+    
+@pytest.mark.parametrize("case", [c for c in CASES if c["expected_behavior"] == "fallback"], ids=lambda c: c["id"])
+def test_fallback_message_and_llm_not_called(bot, case):
+    r = bot.answer(case["question"])
+    assert r.mode == cb.MODE_OUT_OF_SCOPE and r.text == FALLBACK_MESSAGE
+    assert bot.llm.calls == [], "LLM must not see unrelated questions"
+
+@pytest.mark.parametrize(
+    "case",
+    [c for c in CASES if c["expected_behavior"] == "refused"],
+    ids=lambda c: c["id"],
+)
+def test_unsafe_requests_are_refused_without_llm(bot, case):
+    r = bot.answer(case["question"])
+
+    assert r.mode == cb.MODE_REFUSED
+    assert "can't help" in r.text.lower()
+    assert bot.llm.calls == []
+
+@pytest.mark.parametrize(
+    "case",
+    [c for c in CASES if c["expected_behavior"] == "injection"],
+    ids=lambda c: c["id"],
+)
+def test_prompt_injection_is_refused_without_llm(bot, case):
+    r = bot.answer(case["question"])
+
+    assert r.mode == cb.MODE_INJECTION
+    assert "system prompt" not in r.text.lower() or "can't" in r.text.lower()
+    assert bot.llm.calls == []
+def test_small_talk_and_empty_input(bot):
+    assert bot.answer("").mode == cb.MODE_SMALLTALK
+    assert bot.answer("Hello!").mode == cb.MODE_SMALLTALK
+    assert bot.answer("thank you").mode == cb.MODE_SMALLTALK
+    assert bot.llm.calls == []
+def test_model_saying_it_does_not_know_becomes_standard_fallback(retriever):
+    class Refusing(FakeLLM):
+        def generate(self, q, c):
+            return FALLBACK_MESSAGE
+
+    r = SilatGuideBot(
+        retriever=retriever,
+        llm=Refusing(),
+    ).answer("What is Silat?")
+
+    assert r.mode == cb.MODE_OUT_OF_SCOPE
+    assert r.sources == []
+# ------------------------------------------------------------- Ollama failure handling
+@pytest.mark.parametrize("exc, expected_text", [
+    (OllamaUnavailable("x"), "not running"),
+    (OllamaModelMissing("x"), "ollama pull"),
+    (OllamaTimeout("x"), "too long"),
+])
+def test_ollama_failure_gives_labelled_dataset_fallback(retriever, exc, expected_text):
+    class Broken:
+        def generate(self, q, c):
+            raise exc
+
+    r = SilatGuideBot(retriever=retriever, llm=Broken()).answer("What is a tengkolok?")
+    assert r.mode == cb.MODE_DATASET, "must NOT be presented as an LLM answer"
+    assert r.used_llm is False
+    assert expected_text in r.error.lower()
+    assert "tengkolok" in r.text.lower() and len(r.sources) == 1
+
+
+def test_real_connection_failure_to_closed_port(retriever):
+    s = Settings(ollama_host="http://127.0.0.1:9", timeout_seconds=2)
+    r = SilatGuideBot(retriever=retriever, llm=OllamaClient(s), settings=s).answer("What is Silat?")
+    assert r.mode == cb.MODE_DATASET and "not running" in r.error.lower()
+    st = OllamaClient(s).status(timeout=1)
+    assert not st.reachable and not st.ok
+
+
+# ------------------------------------------------------- Ollama client with mocked HTTP
+class _Resp:
+    def __init__(self, code=200, payload=None, text=""):
+        self.status_code, self._p, self.text = code, payload, text
+
+    def json(self):
+        if self._p is None:
+            raise ValueError("no json")
+        return self._p
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.exceptions.HTTPError(str(self.status_code))
+
+
+def test_client_sends_low_temperature_and_small_context(monkeypatch):
+    seen = {}
+
+    def fake_post(url, json=None, timeout=None):
+        seen.update(url=url, body=json, timeout=timeout)
+        return _Resp(payload={"message": {"content": "  hello  "}})
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    out = OllamaClient(Settings()).generate("Q?", [{"question": "q", "answer": "a"}])
+    assert out == "hello"
+    assert seen["body"]["model"] == "llama3.2:3b" and seen["body"]["stream"] is False
+    assert seen["body"]["options"]["temperature"] <= 0.2
+    assert seen["body"]["options"]["num_ctx"] <= 4096 and seen["body"]["options"]["num_predict"] <= 400
+    assert "CONTEXT" in seen["body"]["messages"][1]["content"]
+
+
+def test_client_maps_http_errors(monkeypatch):
+    from src.llm import OllamaBadResponse
+    monkeypatch.setattr(requests, "post", lambda *a, **k: _Resp(404, text="model not found"))
+    with pytest.raises(OllamaModelMissing):
+        OllamaClient(Settings()).generate("q", [])
+    monkeypatch.setattr(requests, "post", lambda *a, **k: _Resp(200, payload={"oops": 1}))
+    with pytest.raises(OllamaBadResponse):
+        OllamaClient(Settings()).generate("q", [])
+
+    def timeout(*a, **k):
+        raise requests.exceptions.Timeout("slow")
+    monkeypatch.setattr(requests, "post", timeout)
+    with pytest.raises(OllamaTimeout):
+        OllamaClient(Settings()).generate("q", [])
+
+
+def test_status_reports_missing_model(monkeypatch):
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp(payload={"models": [{"name": "mistral:7b"}]}))
+    st = OllamaClient(Settings()).status()
+    assert st.reachable and not st.model_ready and "ollama pull" in st.message
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp(payload={"models": [{"name": "llama3.2:3b"}]}))
+    assert OllamaClient(Settings()).status().ok
+
+
+# ------------------------------------------------------------- documented limitations
+@pytest.mark.xfail(reason="KNOWN LIMITATION: lexical TF-IDF cannot map the phrasal verb 'put on' to 'wear'", strict=True)
+def test_known_limitation_phrasal_verb_paraphrase(retriever):
+    assert retriever.search("What do practitioners put on when doing Silat?").is_relevant
+
+
+# ------------------------------------------------------------- suggested questions
+def test_every_suggested_question_is_answerable(retriever):
+    sys.path.insert(0, str(ROOT / "app"))
+    import ast
+    src = (ROOT / "app" / "main.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    lists = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") in ("SUGGESTIONS", "TOPICS"):
+            lists[node.targets[0].id] = ast.literal_eval(node.value)
+    questions = [q for _, q in lists["SUGGESTIONS"]] + [q for _, q in lists["TOPICS"]]
+    assert len(questions) == 9
+    for q in questions:
+        assert retriever.search(q).is_relevant, q
+
+
+# ------------------------------------------------------------- optional live test
+@pytest.mark.skipif(os.getenv("RUN_OLLAMA_TESTS") != "1", reason="set RUN_OLLAMA_TESTS=1 with Ollama running")
+def test_live_ollama_answers_in_english():
+    bot = SilatGuideBot()
+    assert bot.llm.status().ok, "Ollama/model not ready"
+    r = bot.answer("What is Silat?")
+    assert r.mode == cb.MODE_LLM and len(r.text) > 40
