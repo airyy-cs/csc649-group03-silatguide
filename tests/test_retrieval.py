@@ -134,6 +134,7 @@ def test_offtopic_and_unanswerable_are_rejected(retriever, case):
     )
 
     assert res.relevant_matches == []
+# ------------------------------------------------------------------- chatbot behaviour
 @pytest.mark.parametrize(
     "case",
     [c for c in CASES if c["expected_behavior"] == "answer"][:6],
@@ -152,6 +153,13 @@ def test_relevant_question_reaches_llm_with_context_and_sources(bot, case):
     question, context = bot.llm.calls[-1]
 
     assert 1 <= len(context) <= 3
+    
+@pytest.mark.parametrize("case", [c for c in CASES if c["expected_behavior"] == "fallback"], ids=lambda c: c["id"])
+def test_fallback_message_and_llm_not_called(bot, case):
+    r = bot.answer(case["question"])
+    assert r.mode == cb.MODE_OUT_OF_SCOPE and r.text == FALLBACK_MESSAGE
+    assert bot.llm.calls == [], "LLM must not see unrelated questions"
+
 @pytest.mark.parametrize(
     "case",
     [c for c in CASES if c["expected_behavior"] == "refused"],
