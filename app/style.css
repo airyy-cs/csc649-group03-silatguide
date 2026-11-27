@@ -114,3 +114,9 @@ section.main .stButton>button, [data-testid="stMain"] .stButton>button{
 .sg-src ul{margin:.45rem 0 0;padding-left:1.1rem;}
 .sg-src li{margin:.3rem 0;}
 .sg-src a{color:var(--forest);text-decoration:underline;text-decoration-color:var(--gold);text-underline-offset:2px;}
+.sg-copy{flex:none;margin-left:auto;display:inline-flex;align-items:center;justify-content:center;position:relative;width:28px;height:28px;
+  border-radius:8px;border:1px solid transparent;background:transparent;color:#9AA096;cursor:pointer;transition:all .2s ease;}
+.sg-copy:hover{color:var(--forest);background:#F3EAD3;border-color:var(--line);}
+.sg-copy.ok{color:#14573F;background:#E4F3EA;border-color:#BFE0CB;}
+.sg-copy.ok::after{content:"Copied";position:absolute;right:34px;top:50%;transform:translateY(-50%);font-size:.7rem;color:#14573F;white-space:nowrap;}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
