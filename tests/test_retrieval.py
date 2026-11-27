@@ -40,3 +40,22 @@ EXPECTED_CATEGORIES = {
     "Ethics and Discipline": 4, "Training Safety": 4, "Traditional Clothing and Equipment": 3,
     "General Beginner Questions": 3,
 }
+class FakeLLM:
+    """Stands in for Ollama so retrieval/routing tests are fast and deterministic."""
+
+    def __init__(self):
+        self.calls = []
+
+    def generate(self, question, context):
+        self.calls.append((question, context))
+        return "FAKE-LLM-ANSWER"
+
+
+@pytest.fixture(scope="module")
+def retriever():
+    return SilatRetriever(DATA, threshold=0.25, top_k=3)
+
+
+@pytest.fixture()
+def bot(retriever):
+    return SilatGuideBot(retriever=retriever, llm=FakeLLM())
