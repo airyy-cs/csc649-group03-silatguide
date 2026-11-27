@@ -220,3 +220,55 @@ def chibi(d, cx, g, s, pal, dirn=1, lean=0.0, hop=0.0, front_hand=(26, -6), back
     poly(d, [(hx, hc - 22 * s), (hx + 4.2 * s, hc - 17 * s), (hx, hc - 12 * s), (hx - 4.2 * s, hc - 17 * s)], GOLD, w=1.1)
     ell(d, hx, hc - 17 * s, 1.5 * s, 1.5 * s, (200, 40, 60), outline=None)
 
+# --------------------------------------------------------------- backgrounds
+def _radial(size, inner, outer):
+    im = Image.new("RGB", (size, size), outer)
+    d = ImageDraw.Draw(im)
+    for i in range(size // 2, 0, -2):
+        t = i / (size / 2)
+        col = tuple(int(inner[k] * (1 - t) + outer[k] * t) for k in range(3))
+        d.ellipse([size / 2 - i, size / 2 - i, size / 2 + i, size / 2 + i], fill=col)
+    return im
+
+
+# ------------------------------------------------------------------------ avatar
+def make_avatar(path: Path, size: int = 512) -> None:
+    big = size * SS
+    bg = _radial(big, (255, 244, 214), (226, 196, 128)).convert("RGBA")
+    d = ImageDraw.Draw(bg)
+    # soft songket-style diamond lattice
+    step = big // 8
+    for gx in range(-1, 10):
+        for gy in range(-1, 10):
+            cx, cy = gx * step, gy * step
+            r = step * 0.18
+            d.polygon([(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)], fill=(214, 168, 70, 60))
+
+    # character layer (drawn at final-pixel units, SS handled inside primitives)
+    layer = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    ld = ImageDraw.Draw(layer)
+    s = 4.15
+    chibi(ld, size / 2 + 6, 585, s, PAL_GREEN, dirn=1, face="happy", front_hand=(30, -40),
+          back_hand=(-6, -8), sheath=True, legs=False)
+    # waving motion arcs + sparkles
+    for k, r in enumerate((26, 38)):
+        cxw, cyw = size / 2 + 6 + 17 * s + 30 * s, 388 - 40 * s - 4 * s + 40 * s * 0
+    star(ld, size * 0.80, size * 0.22, 14, SPARK, 10)
+    star(ld, size * 0.17, size * 0.30, 9, SPARK, 0)
+    star(ld, size * 0.86, size * 0.40, 7, (255, 255, 255), 0)
+    bg = Image.alpha_composite(bg, layer)
+
+    # circular crop + gold ring
+    mask = Image.new("L", (big, big), 0)
+    md = ImageDraw.Draw(mask)
+    md.ellipse([0, 0, big - 1, big - 1], fill=255)
+    out = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    out.paste(bg, (0, 0), mask)
+    od = ImageDraw.Draw(out)
+    ring = int(7 * SS)
+    od.ellipse([ring / 2, ring / 2, big - ring / 2, big - ring / 2], outline=GOLD_D, width=ring)
+    od.ellipse([ring * 1.7, ring * 1.7, big - ring * 1.7, big - ring * 1.7], outline=(255, 236, 170), width=int(2 * SS))
+    out = out.resize((size, size), Image.LANCZOS)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    out.save(path, optimize=True)
+
