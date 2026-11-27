@@ -56,7 +56,6 @@ header[data-testid="stHeader"]{background:transparent;}
   background:linear-gradient(135deg,var(--forest) 0%,var(--forest-3) 60%,#1B6A55 100%);
   box-shadow:var(--shadow);display:flex;align-items:center;gap:1.6rem;color:#FBF1D2;
 }
-
 .sg-hero::before{ /* songket diamond lattice */
   content:"";position:absolute;inset:0;opacity:.14;pointer-events:none;
   background-image:linear-gradient(45deg,var(--gold-2) 25%,transparent 25%,transparent 75%,var(--gold-2) 75%),
@@ -69,7 +68,6 @@ header[data-testid="stHeader"]{background:transparent;}
   background:linear-gradient(135deg,var(--gold) 25%,transparent 25%) -11px 0,linear-gradient(225deg,var(--gold) 25%,transparent 25%) -11px 0;
   background-size:22px 22px;opacity:.9;
 }
-
 .sg-hero img{width:150px;height:150px;border-radius:50%;flex:none;box-shadow:0 0 0 3px var(--gold),0 14px 30px rgba(0,0,0,.35);position:relative;z-index:1;
   animation:float 4.5s ease-in-out infinite;}
 .sg-hero .txt{position:relative;z-index:1;}

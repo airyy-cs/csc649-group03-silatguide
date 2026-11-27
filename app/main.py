@@ -75,6 +75,7 @@ PAGE_SCRIPT = """<script>
 })();
 </script><!-- messages:%d -->"""
 
+
 # ------------------------------------------------------------------ cached resources
 @st.cache_resource(show_spinner=False)
 def get_bot() -> SilatGuideBot:
@@ -99,6 +100,7 @@ def img_src(name: str, mime: str) -> str:
 def inject_css() -> None:
     css = (APP_DIR / "styles.css").read_text(encoding="utf-8")
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
 
 # ------------------------------------------------------------------------- rendering
 def _safe_url(url: str) -> str:
@@ -149,6 +151,7 @@ def loading_html(bot_av: str, gif: str) -> str:
             f"<div class='s'>Gathering what I know about Silat</div>"
             f"<div class='sg-dots'><span></span><span></span><span></span></div></div></div></div>")
 
+
 def ask(q: str) -> None:
     st.session_state.pending = q
     st.rerun()
@@ -178,6 +181,7 @@ def render_sidebar(bot_av: str, s: Settings) -> None:
         st.markdown(f"<div class='sg-conn' title='{title}'><span class='sg-dot {'on' if on else 'off'}'></span>"
                     f"{'Connected' if on else 'Offline'}</div>", unsafe_allow_html=True)
 
+
 def render_welcome(bot_av: str) -> None:
     st.markdown(
         f"<div class='sg-hero'><img src='{bot_av}' alt='SilatGuide mascot'/><div class='txt'>"
@@ -189,6 +193,7 @@ def render_welcome(bot_av: str) -> None:
     for i, (icon, q) in enumerate(SUGGESTIONS):
         if cols[i % 2].button(f"{icon}  {q}", key=f"sug_{i}", use_container_width=True):
             ask(q)
+
 
 # ------------------------------------------------------------------------------ main
 def main() -> None:
